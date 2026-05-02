@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShareChat — अपना मंच</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--black:#000;--s1:#0D0D0D;--s2:#111;--s3:#1A1A1A;--s4:#1C1C1E;--s5:#222;
+--blue:#3B82F6;--green:#25D366;--green2:#16A34A;--red:#EF4444;--orange:#F97316;--gold:#FFD700;--gold2:#F59E0B;--purple:#A855F7;
+--w:#FFF;--g1:#9CA3AF;--g2:#6B7280;--g3:#374151;
+--r:12px;--rs:8px;--rl:16px;--rx:20px;
+}
+body{margin:0;background:#0A0A0A;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+*{scrollbar-width:none;-ms-overflow-style:none}*::-webkit-scrollbar{display:none}
+
+/* Phone */
+.ph{width:393px;height:852px;background:var(--black);border-radius:44px;overflow:hidden;position:relative;border:2px solid #222;box-shadow:0 0 60px rgba(0,0,0,.8)}
+
+/* Statusbar */
+.sb{height:54px;background:var(--black);display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 8px;color:#fff;font-size:14px;font-weight:600;z-index:100;position:relative}
+.sb .r{display:flex;gap:4px;font-size:12px;align-items:center}
+
+/* Screens */
+.sc{height:calc(852px - 54px - 64px);overflow-y:auto;overflow-x:hidden;position:relative}
+.s{display:none;min-height:100%}.s.a{display:block;animation:fi .15s ease}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+
+/* Bottom nav */
+.bn{height:64px;background:var(--black);display:flex;align-items:center;justify-content:space-around;position:relative;z-index:50;padding:0 4px}
+.bn::before{content:'';position:absolute;top:0;left:16px;right:16px;height:1px;background:#1A1A1A}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:6px 12px;-webkit-tap-highlight-color:transparent;position:relative;min-width:48px}
+.ni .ic{font-size:22px;transition:all .15s}.ni .lb{font-size:9px;color:var(--g2);font-weight:500;transition:color .15s}
+.ni.a .lb{color:var(--blue);font-weight:700}
+.nc{width:40px;height:40px;border-radius:50%;border:2px solid var(--g2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.nc:active{transform:scale(.9);border-color:var(--blue)}
+.zp{position:absolute;top:2px;right:4px;width:7px;height:7px;background:var(--orange);border-radius:50%;animation:pu 2s infinite}
+@keyframes pu{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.6)}}
+@keyframes lp{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+/* Tab badge — Addition 3 */
+.tab-badge{position:absolute;top:0;right:2px;min-width:16px;height:16px;background:var(--red);border-radius:8px;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;padding:0 4px;border:2px solid var(--black)}
+
+/* === HOME === */
+.hh{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--black)}
+.sp{flex:1;background:var(--s4);border-radius:20px;padding:10px 16px;font-size:13px;color:var(--g1);cursor:pointer}
+.hi{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
+.hi .bd{position:absolute;top:4px;right:2px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--black)}
+
+/* Feed tabs */
+.ft{display:flex;gap:0;padding:0 12px;overflow-x:auto;background:var(--black);border-bottom:1px solid var(--s3)}
+.ftb{padding:10px 14px;font-size:13px;color:var(--g1);cursor:pointer;white-space:nowrap;position:relative;font-weight:500;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.ftb.a{color:var(--blue);font-weight:700}
+.ftb.a::after{content:'';position:absolute;bottom:0;left:14px;right:14px;height:2px;background:var(--blue);border-radius:2px 2px 0 0}
+
+/* Feed card */
+.fc{background:var(--black);border-bottom:1px solid var(--s2)}
+.fh{display:flex;align-items:center;padding:12px 16px 6px;gap:10px}
+.av{width:40px;height:40px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative}
+.av.sm{width:32px;height:32px;font-size:16px}
+.av .vf{position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;border:2px solid var(--black)}
+.fi{flex:1;min-width:0}
+.fn{font-size:13px;color:#fff;font-weight:600;display:flex;align-items:center;gap:6px}
+.fs{background:rgba(249,115,22,.15);color:var(--orange);font-size:11px;padding:2px 6px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:2px}
+.fm{font-size:11px;color:var(--g2);margin-top:1px}
+.fmore{font-size:18px;color:var(--g2);cursor:pointer;padding:4px;letter-spacing:2px}
+.ftg{padding:4px 16px 8px;font-size:13px;color:var(--blue);line-height:1.6}
+.fth{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;overflow:hidden}
+.fth .dur{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px}
+.fth .pl{position:absolute;width:50px;height:50px;background:rgba(0,0,0,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;backdrop-filter:blur(4px)}
+.fac{display:flex;padding:10px 16px;gap:0;justify-content:space-between}
+.fa{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--g1);cursor:pointer;padding:6px 8px;border-radius:20px;-webkit-tap-highlight-color:transparent;position:relative}
+.fa:active{background:rgba(255,255,255,.04)}
+.fa .fai{font-size:18px}
+
+/* Badges on feed */
+.zp-pill{background:var(--gold);color:#000;font-size:9px;padding:1px 6px;border-radius:6px;font-weight:800;white-space:nowrap}
+.rp-pill{background:var(--blue);color:#fff;font-size:9px;padding:1px 6px;border-radius:6px;font-weight:800}
+
+/* Nudge */
+.nudge{margin:6px 16px;background:var(--s2);border-radius:var(--rl);padding:16px;cursor:pointer;border:1px solid var(--s5);position:relative;overflow:hidden}
+.nudge::after{content:'';position:absolute;top:0;right:0;width:120px;height:120px;background:radial-gradient(circle,rgba(59,130,246,.06),transparent 70%)}
+.nr{display:flex;align-items:center;gap:12px}
+.nicon2{width:40px;height:40px;border-radius:var(--r);background:linear-gradient(135deg,var(--orange),#EA580C);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ntag{font-size:10px;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.nttl{font-size:14px;color:#fff;font-weight:700;margin-top:2px}
+.nmeta{font-size:11px;color:var(--g1);margin-top:3px;display:flex;align-items:center;gap:4px}
+.nmeta .gd{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pu 2s infinite}
+.ncta{display:inline-block;background:var(--blue);color:#fff;padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;margin-top:10px;float:right;position:relative;z-index:1}
+
+/* Lapsed user card — Addition 3B */
+.lapsed{margin:6px 16px;background:var(--s2);border-radius:var(--rl);padding:16px;cursor:pointer;border:1px solid var(--s5);border-left:3px solid var(--orange)}
+.lapsed .l-title{font-size:14px;color:#fff;font-weight:700;margin-bottom:6px}
+.lapsed .l-body{font-size:12px;color:var(--g1);line-height:1.6}
+.lapsed .l-cta{font-size:12px;color:var(--blue);font-weight:700;margin-top:8px}
+
+/* === APNA MANCH === */
+.mh{background:var(--black);padding:8px 16px 6px}
+.mt{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ml{display:flex;align-items:center;gap:4px}
+.mb{font-size:20px;color:#fff;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent}
+.mtitle{font-size:17px;font-weight:800;color:#fff}
+.msub{font-size:10px;color:var(--g1);display:flex;align-items:center;gap:4px;padding-left:28px;margin-top:-2px}
+.msub .gd{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pu 2s infinite}
+.ma{display:flex;gap:6px}
+.mab{width:34px;height:34px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
+.mab .nd{position:absolute;top:0;right:0;min-width:14px;height:14px;background:var(--red);border-radius:7px;font-size:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;padding:0 3px}
+
+/* Ring tabs */
+.rt{display:flex;background:var(--s2);border-radius:var(--rs);padding:3px;gap:2px;margin:8px 16px 0}
+.rtb{flex:1;text-align:center;padding:8px 4px;border-radius:6px;font-size:12px;color:var(--g1);cursor:pointer;font-weight:500;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.rtb.a{background:#fff;color:#000;font-weight:700}
+
+/* Return banner — HOOK 1 */
+.rb{margin:8px 16px;background:var(--s2);border-radius:var(--r);padding:14px;border-left:3px solid var(--blue);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.rb .rbt{font-size:12px;color:var(--g1);margin-bottom:4px}.rb .rbb{font-size:14px;color:#fff;font-weight:600;line-height:1.5}.rb .rbc{font-size:12px;color:var(--blue);margin-top:6px;font-weight:600}
+
+/* 90-sec action — HOOK 5 */
+.qa{margin:6px 16px;background:var(--s2);border-radius:var(--r);padding:14px;border:1px solid var(--s5)}
+.qat{font-size:13px;color:#fff;font-weight:700;margin-bottom:8px}
+.qar{display:flex;justify-content:space-between;font-size:12px;color:var(--g1);padding:4px 0}
+.qar .qp{color:var(--gold2);font-weight:700}
+.qan{font-size:11px;color:var(--blue);margin-top:8px;font-weight:500;font-style:italic}
+
+/* Rank strip — HOOK 7 */
+.rs{margin:8px 16px;background:var(--s2);border-radius:var(--r);padding:14px;position:relative;overflow:hidden}
+.rs::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--gold2),var(--blue))}
+.rst{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.rsr{font-size:28px;font-weight:900;color:#fff;transition:color .3s}
+.rslv{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--red);font-weight:700}
+.rslv .rd{width:6px;height:6px;background:var(--red);border-radius:50%;animation:pu 1.5s infinite}
+.rsl{font-size:12px;color:var(--g1)}.rsp{font-size:13px;color:#fff;font-weight:600}
+.pb{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin:8px 0 4px}
+.pf{height:100%;background:var(--blue);border-radius:2px;transition:width .6s}
+.rspg{font-size:10px;color:var(--gold2);font-weight:500}
+.rsth{font-size:11px;color:var(--orange);margin-top:6px;padding:6px 8px;background:rgba(249,115,22,.06);border-radius:6px;transition:opacity .3s}
+.rscta{background:var(--blue);color:#fff;border:none;padding:9px 18px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;-webkit-tap-highlight-color:transparent}
+.rscta:active{opacity:.8}
+
+/* Daily moment */
+.dm{margin:8px 16px;background:var(--s2);border-radius:var(--rl);padding:16px;cursor:pointer;position:relative;overflow:hidden;border:1px solid rgba(249,115,22,.12)}
+.dm::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--orange),var(--red),var(--orange))}
+.dml{font-size:12px;color:var(--orange);font-weight:700;margin-bottom:6px}
+.dmt{font-size:14px;color:#fff;font-weight:700;line-height:1.5;margin-bottom:10px}
+.dmr{display:flex;justify-content:space-between;align-items:flex-end}
+.dmtm{font-size:22px;font-weight:800;color:#fff;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.dmtl{font-size:10px;color:var(--g1);margin-bottom:2px}
+.dmc{font-size:11px;color:var(--g1);text-align:right}
+.dmcta{background:var(--orange);color:#fff;padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:800;cursor:pointer;border:none;font-family:inherit;margin-top:8px;-webkit-tap-highlight-color:transparent}
+.dmcta:active{opacity:.8}
+
+/* Scarcity — HOOK 3 */
+.scc{margin:8px 16px;background:var(--s2);border-radius:var(--r);padding:14px;border:1px solid rgba(255,215,0,.15)}
+.sct{font-size:13px;color:var(--gold);font-weight:700;margin-bottom:4px}
+.scs{font-size:11px;color:var(--g1);margin-bottom:6px;line-height:1.5}
+.scw{font-size:12px;color:var(--red);font-weight:700;margin-bottom:4px}
+.scb{display:flex;justify-content:space-between;font-size:10px;color:var(--g2)}
+
+/* Section header */
+.sh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 8px;color:#fff;font-size:14px;font-weight:700}
+.sh .sa{font-size:12px;color:var(--blue);cursor:pointer;font-weight:600}
+
+/* Stars */
+.stars{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto}
+.star{flex-shrink:0;width:90px;background:var(--s2);border-radius:var(--r);padding:10px 6px 8px;text-align:center;cursor:pointer;border:1px solid var(--s5);transition:transform .12s;-webkit-tap-highlight-color:transparent}
+.star:active{transform:scale(.96)}.star.you{border-color:var(--blue);background:rgba(59,130,246,.04)}
+.sr{display:inline-block;font-size:9px;font-weight:900;color:#000;padding:2px 7px;border-radius:5px;margin-bottom:4px}
+.sr.g{background:var(--gold)}.sr.s{background:#C0C0C0}.sr.b{background:#CD7F32;color:#fff}.sr.n{background:var(--blue);color:#fff}
+.sav{font-size:26px;display:block;margin:2px 0}.san{font-size:10px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sap{font-size:9px;color:var(--gold2);margin:2px 0;font-weight:600}.sac{font-size:9px;color:var(--g2)}
+.sfb{background:var(--blue);color:#fff;border:none;width:100%;padding:5px;border-radius:6px;font-size:9px;margin-top:5px;cursor:pointer;font-family:inherit;font-weight:700}
+.star.you .sfb{background:var(--gold);color:#000}
+
+/* LIVE */
+.lc{margin:8px 16px;background:var(--s2);border-radius:var(--r);padding:14px;cursor:pointer;border:1px solid rgba(239,68,68,.12)}
+.lbg{display:inline-flex;align-items:center;gap:4px;background:var(--red);color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:800;animation:lp 1.5s infinite;margin-bottom:8px}
+.lbg .ld{width:5px;height:5px;background:#fff;border-radius:50%}
+.li{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.lv{font-size:11px;color:var(--g1);margin-bottom:8px}
+.lj{background:var(--red);color:#fff;border:none;padding:8px 18px;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* Zila ki Jaan — HOOK 10 */
+.zkj{margin:8px 16px;background:var(--s2);border-radius:var(--r);padding:14px;border:1px solid rgba(168,85,247,.15)}
+.zkjt{font-size:13px;color:var(--purple);font-weight:700;margin-bottom:8px}
+.zkjb{font-size:12px;color:var(--g1);line-height:1.6}
+.zkjb b{color:#fff}
+.zkjq{font-size:13px;color:#fff;margin:8px 0;font-style:italic;line-height:1.5}
+.zkjc{font-size:12px;color:var(--blue);font-weight:600;margin-top:4px;cursor:pointer}
+
+/* Sponsored */
+.spon{margin:8px 16px;background:var(--s2);border-radius:var(--r);padding:14px;border:1.5px dashed rgba(249,115,22,.2)}
+.spt{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.spl{font-size:11px;color:var(--orange);font-weight:700}
+.sptg{font-size:9px;color:var(--g2);background:var(--s3);padding:2px 8px;border-radius:4px}
+.spbd{display:flex;gap:12px;align-items:center}
+.splg{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--orange));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.spn{font-size:13px;color:#fff;font-weight:700}
+.spd{font-size:11px;color:var(--g1);margin-top:2px;line-height:1.4}
+.spcta{background:var(--orange);color:#fff;border:none;padding:7px 16px;border-radius:var(--rs);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}
+
+/* Ring 2 */
+.bban{margin:10px 16px;background:var(--s2);border-radius:var(--rl);padding:18px;text-align:center;border:1px solid var(--s5)}
+.bbn{font-size:18px;font-weight:800;color:#fff;margin-bottom:4px}.bbd{font-size:12px;color:var(--g1);line-height:1.6}
+.bch{margin:6px 16px;background:var(--s2);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border:1px solid var(--s5)}
+.bct{font-size:13px;color:#fff;font-weight:700}.bcm{font-size:11px;color:var(--g2);margin-top:2px}
+.bj{background:var(--blue);color:#fff;border:none;padding:7px 14px;border-radius:var(--rs);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.bll{margin:0 16px;background:var(--s2);border-radius:var(--r);overflow:hidden}
+.blr{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--s3)}
+.blr:last-child{border-bottom:none}
+.blrk{font-size:14px;font-weight:800;color:var(--gold);width:22px;text-align:center}
+.bli{flex:1;min-width:0}.bln{font-size:12px;color:#fff;font-weight:600}.blm{font-size:10px;color:var(--g2)}
+.blp{font-size:12px;color:var(--gold2);font-weight:700}
+
+/* Ring 3 */
+.tc{margin:6px 16px;background:var(--s2);border-radius:var(--r);padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;border:1px solid var(--s5)}
+.trk{font-size:9px;font-weight:800;padding:4px 10px;border-radius:6px;flex-shrink:0}
+.trk.india{background:var(--gold);color:#000}.trk.state{background:var(--orange);color:#fff}.trk.rising{background:var(--green);color:#fff}
+.ttt{font-size:13px;color:#fff;font-weight:700}.ttm{font-size:11px;color:var(--g1);margin-top:2px}
+
+/* === PROFILE === */
+.ph2{background:var(--black);padding:20px 16px 30px;text-align:center}
+.pav{width:72px;height:72px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;border:2px solid #333}
+.pnm{font-size:17px;color:#fff;font-weight:800}.phl{font-size:12px;color:var(--g2);margin-top:2px}
+.pst{display:flex;justify-content:space-around;padding:14px;background:var(--s2);margin:0 16px;border-radius:var(--r);margin-top:-14px;position:relative;z-index:1;border:1px solid var(--s5)}
+.ps{text-align:center}.ps .pv{font-size:16px;font-weight:900;color:#fff}.ps .pl{font-size:9px;color:var(--g2);margin-top:2px}
+
+/* Identity card — HOOK 8 */
+.idc{margin:12px 16px;background:var(--s2);border-radius:var(--rl);padding:16px;border:1px solid rgba(255,215,0,.1)}
+.idct{font-size:14px;color:var(--gold);font-weight:800;margin-bottom:12px}
+.idcr{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+.idcb{font-size:40px;font-weight:900;color:#fff;line-height:1}
+.idcm .im{font-size:11px;color:var(--g1);margin-bottom:4px}.idcm .im b{color:#fff}
+.idcl{font-size:11px;color:var(--orange);margin:10px 0 6px;padding:8px;background:rgba(249,115,22,.04);border-radius:var(--rs);line-height:1.5}
+.idcbg{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.bdg{background:var(--s3);border-radius:var(--rs);padding:8px 7px;text-align:center;font-size:9px;color:var(--g1);min-width:58px;border:1px solid var(--s5)}
+.bdg .be{font-size:18px;display:block;margin-bottom:2px}
+.bdg.u{background:rgba(255,215,0,.04);color:var(--gold2);border-color:rgba(255,215,0,.12)}
+.bdg.l{opacity:.3}
+
+/* Badge history — HOOK 9 */
+.bh{margin:10px 16px}.bht{font-size:13px;color:#fff;font-weight:700;margin-bottom:8px}
+.bhi{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--s2)}
+.bhi:last-child{border-bottom:none}.bhi .bhic{font-size:18px}
+.bhi .bhn{font-size:12px;color:#fff;font-weight:600}.bhi .bhm{font-size:10px;color:var(--g2)}
+.bhi.lk{opacity:.4}.bhi.lk .bhn{color:var(--blue)}
+
+/* Festival streaks */
+.fsk{margin:10px 16px;background:var(--s2);border-radius:var(--r);padding:14px;border:1px solid var(--s5)}
+.fskt{font-size:13px;color:#fff;font-weight:700;margin-bottom:8px}
+.fsr{display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid var(--s3)}
+.fsr:last-child{border-bottom:none}.fsn{color:var(--g1)}.fsv{color:var(--gold2);font-weight:700}
+
+/* Video grid */
+.vg{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:10px 16px}
+.vi{aspect-ratio:9/16;background:var(--s2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;position:relative;overflow:hidden}
+.vi .vw{position:absolute;bottom:4px;left:6px;font-size:9px;color:#fff;display:flex;align-items:center;gap:2px}
+
+/* === OVERLAYS === */
+.ov{position:absolute;top:0;left:0;width:100%;height:100%;z-index:200;display:none;background:var(--black);overflow-y:auto}
+.ov.a{display:block;animation:su .2s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ovh{display:flex;align-items:center;gap:12px;padding:58px 16px 12px;border-bottom:1px solid var(--s3);position:sticky;top:0;z-index:1;background:var(--black)}
+.ovbk{font-size:18px;cursor:pointer;color:#fff;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--s2);-webkit-tap-highlight-color:transparent}
+.ovt{font-size:16px;color:#fff;font-weight:800;flex:1}
+
+/* Notif */
+.nli{padding:4px 0}.nit{display:flex;gap:12px;padding:14px 16px;cursor:pointer;position:relative}
+.nit:active{background:rgba(255,255,255,.02)}.nit.ur{background:rgba(59,130,246,.03)}
+.nit.ur::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.nic{width:38px;height:38px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.nbd{flex:1;min-width:0}.nmsg{font-size:13px;color:#fff;line-height:1.5}.ntm{font-size:10px;color:var(--g2);margin-top:3px}
+.ngr{margin:16px;background:var(--s2);border-radius:var(--r);padding:14px;border:1px solid var(--s5)}
+.ngr p{font-size:11px;color:var(--g1);line-height:1.6}
+.nsd{margin:8px 16px;font-size:11px;color:var(--g2);padding:10px;background:var(--s2);border-radius:var(--rs)}
+
+/* Leaderboard */
+.lbh{background:var(--black);padding:58px 16px 12px;border-bottom:1px solid var(--s3);position:sticky;top:0;z-index:1}
+.lbs{font-size:11px;color:var(--g1);margin-top:2px}
+.lbc2{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px}
+.lbc{padding:6px 14px;border-radius:20px;font-size:11px;color:var(--g1);cursor:pointer;white-space:nowrap;background:var(--s2);font-weight:600;-webkit-tap-highlight-color:transparent;transition:all .15s}
+.lbc.a{background:#fff;color:#000}
+.lbrs{text-align:center;padding:10px 16px;font-size:11px;color:var(--g1);background:var(--s2);margin:8px 16px;border-radius:var(--rs);border:1px solid rgba(255,215,0,.05)}
+.pod{display:flex;justify-content:center;align-items:flex-end;gap:6px;padding:16px 16px 8px}
+.pdi{text-align:center;cursor:pointer}
+.pda{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;background:var(--s2)}
+.pdi:nth-child(2) .pda{width:58px;height:58px;font-size:28px;border:2px solid var(--gold);background:rgba(255,215,0,.04)}
+.pdi:nth-child(1) .pda{border:2px solid #C0C0C0}.pdi:nth-child(3) .pda{border:2px solid #CD7F32}
+.pdn{font-size:10px;color:#fff;font-weight:700}.pdp{font-size:9px;color:var(--gold2)}
+.pdr{font-size:18px;font-weight:900}
+.pdi:nth-child(2) .pdr{color:var(--gold)}.pdi:nth-child(1) .pdr{color:#C0C0C0}.pdi:nth-child(3) .pdr{color:#CD7F32}
+.lbl{padding:0 16px}
+.lbr{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:var(--rs);margin-bottom:3px;cursor:pointer}
+.lbr:active{background:rgba(255,255,255,.02)}
+.lbr.me{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15)}
+.lrrk{width:26px;font-size:13px;font-weight:800;color:var(--g2);text-align:center}
+.lri{flex:1;min-width:0}.lrn{font-size:12px;color:#fff;font-weight:700}.lrc{font-size:10px;color:var(--g2)}
+.lrp{font-size:12px;color:var(--gold2);font-weight:800}.lrt{font-size:12px;margin-left:2px}
+.pg{margin:16px;background:var(--s2);border-radius:var(--r);padding:14px}
+.pgt{font-size:13px;color:#fff;font-weight:700;margin-bottom:8px}
+.pgr{display:flex;justify-content:space-between;padding:6px 0;font-size:11px;border-bottom:1px solid var(--s3)}.pgr:last-child{border-bottom:none}
+.pga{color:var(--g1)}.pgp{color:var(--gold2);font-weight:700}
+.lbtn{display:block;margin:16px;background:var(--blue);color:#fff;border:none;width:calc(100% - 32px);padding:14px;border-radius:var(--r);font-size:14px;font-weight:800;cursor:pointer;text-align:center;font-family:inherit;margin-bottom:60px}
+
+/* Create */
+.cov{background:#000}
+.cvh{display:flex;align-items:center;justify-content:space-between;padding:58px 16px 10px}
+.cvx{font-size:24px;color:#fff;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.cvt{font-size:15px;color:#fff;font-weight:700}
+.cam{width:calc(100% - 32px);margin:8px 16px;height:300px;background:#0A0A0A;border-radius:var(--rl);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:48px;position:relative;border:1px solid var(--s5)}
+.cam .ch{font-size:12px;color:var(--g2);margin-top:8px}
+.cvhi{margin:8px 16px;background:var(--s2);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--g1);line-height:1.5;border-left:2px solid var(--blue)}
+.cvtg{padding:10px 16px;display:flex;flex-direction:column;gap:8px}
+.tog{display:flex;align-items:center;gap:12px;background:var(--s2);border-radius:var(--r);padding:12px;border:1px solid var(--s5)}
+.togt{flex:1;font-size:12px;color:var(--g1);line-height:1.4}
+.togp{font-size:10px;color:var(--gold2);font-weight:700;margin-top:2px}
+.togs{width:40px;height:22px;background:var(--green);border-radius:11px;position:relative;cursor:pointer;flex-shrink:0}
+.togk{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px;transition:all .2s}
+.cvbt{position:absolute;bottom:40px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:28px}
+.cfl{width:40px;height:40px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
+.cap{width:66px;height:66px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 0 4px rgba(255,255,255,.15);-webkit-tap-highlight-color:transparent}
+.cap:active{transform:scale(.9)}
+.capi{width:54px;height:54px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff}
+.csp{width:40px}
+
+/* Reveal */
+.rev{position:absolute;top:0;left:0;width:100%;height:100%;z-index:250;display:none;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px}
+.rev.a{display:flex}
+.revc{background:var(--s2);border-radius:var(--rx);padding:24px;width:100%;max-width:340px;text-align:center;border:1px solid rgba(255,215,0,.12);position:relative;overflow:hidden}
+.revc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--orange),var(--gold))}
+.rvt{font-size:15px;color:var(--gold);font-weight:800;margin-bottom:4px}
+.rvs{font-size:18px;color:#fff;font-weight:900;margin-bottom:2px}
+.rvw{font-size:11px;color:var(--g1);margin-bottom:16px}
+.rvl{text-align:left;margin-bottom:16px}
+.rvr{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--s3)}
+.rvr:last-child{border-bottom:none}
+.rvrk{font-size:16px;width:24px;text-align:center}
+.rvrn{flex:1;font-size:13px;color:#fff;font-weight:600}
+.rvrc{font-size:10px;color:var(--g1)}
+.rvrp{font-size:12px;color:var(--gold2);font-weight:700}
+.rvme{margin:12px 0;padding:10px;background:rgba(59,130,246,.06);border-radius:var(--rs);border:1px solid rgba(59,130,246,.15)}
+.rvmet{font-size:13px;color:#fff;font-weight:600}
+.rvwa{background:var(--green);color:#fff;border:none;width:100%;padding:12px;border-radius:var(--r);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:8px;-webkit-tap-highlight-color:transparent}
+.rvcl{background:transparent;color:var(--g1);border:none;width:100%;padding:10px;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px}
+
+/* Post-session satisfaction — Addition 2 */
+.pss{position:absolute;top:0;left:0;width:100%;height:100%;z-index:260;display:none;background:rgba(0,0,0,.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;text-align:center;color:#fff;padding:40px}
+.pss.a{display:flex;flex-direction:column;animation:fi .3s ease}
+.pss .pss-check{font-size:60px;margin-bottom:16px;animation:chk .4s ease}
+@keyframes chk{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.pss .pss-msg{font-size:16px;font-weight:700;margin-bottom:6px;line-height:1.5}
+.pss .pss-pts{font-size:22px;font-weight:900;color:var(--gold);margin-bottom:6px}
+.pss .pss-bar{width:200px;height:4px;background:var(--s3);border-radius:2px;margin:8px auto;overflow:hidden}
+.pss .pss-fill{height:100%;background:var(--blue);border-radius:2px;animation:pfill .8s ease forwards}
+@keyframes pfill{from{width:0}to{width:62%}}
+.pss .pss-sub{font-size:12px;color:var(--g1);margin-top:4px}
+
+/* Toasts */
+.toc{position:absolute;top:58px;left:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.tst{background:var(--s4);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(12px);animation:ti .2s ease;border:1px solid #333}
+.tst.pts{background:rgba(22,163,74,.92);border-color:rgba(22,163,74,.3)}
+@keyframes ti{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes to2{from{opacity:1}to{opacity:0;transform:translateY(-6px)}}
+.tst .tsi{font-size:18px}.tst .tsb{flex:1}.tst .tst2{font-size:12px;color:#fff;font-weight:700}.tst .tss{font-size:10px;color:rgba(255,255,255,.7)}
+
+/* React float — HOOK 6 */
+@keyframes cntUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-16px);opacity:0}}
+.rfloat{position:absolute;color:var(--gold2);font-size:11px;font-weight:800;animation:cntUp .8s ease forwards;pointer-events:none;top:-4px;right:0}
+</style>
+</head>
+<body>
+<div class="ph" id="app">
+<div class="sb"><div>9:41</div><div class="r"><span>●●●●</span> 📶 🔋</div></div>
+<div class="toc" id="tc"></div>
+
+<div class="sc" id="sc">
+
+<!-- HOME -->
+<div class="s a" id="sH">
+<div class="hh">
+<div class="sp" onclick="toast('🔍','Search coming soon')">🔍 कॉमेडी खोजें</div>
+<div class="hi" onclick="openOv('oN')">🔔<span class="bd"></span></div>
+<div class="hi" onclick="toast('💬','Messages')">💬</div>
+<div class="hi" onclick="toast('⚙️','Menu')">⋯</div>
+</div>
+<div class="ft">
+<div class="ftb a" onclick="stab(this)">🔥 Trending</div>
+<div class="ftb" onclick="stab(this)">🔥 Video</div>
+<div class="ftb" onclick="stab(this)">🔥 Following</div>
+<div class="ftb" onclick="stab(this)">🎭 चैत्र नवरात्रि</div>
+<div class="ftb" onclick="stab(this)">☪️ ईद-उल-फितर</div>
+</div>
+
+<!-- Card 1 -->
+<div class="fc">
+<div class="fh"><div class="av">👨</div><div class="fi"><div class="fn">PintuBhaiDamanWale <span class="fs">🔥 174</span></div><div class="fm">0 views · 6d</div></div><div class="fmore">⋯</div></div>
+<div class="ftg">#📋 Whatsapp स्टेटस #❤️ शुभकामना सन्देश #जय श्री कृष्णा #🌟 Good Morning🌟</div>
+<div class="fth" style="background:linear-gradient(135deg,#1a0a2e,#0a0518)"><span>🙏</span><span class="pl">▶</span><span class="dur">01:20</span></div>
+<div class="fac">
+<span class="fa" onclick="toast('📲','WhatsApp share')"><span class="fai">📲</span> 3.9K</span>
+<span class="fa" onclick="toast('💬','Comments')"><span class="fai">💬</span> 29</span>
+<span class="fa" onclick="doReact(this)"><span class="fai">♡</span> <span class="cnt">7.0K</span></span>
+<span class="fa" onclick="toast('🔖','Saved!')"><span class="fai">🔖</span></span>
+</div></div>
+
+<!-- Nudge -->
+<div class="nudge" onclick="goScr(3)">
+<div class="nr"><div class="nicon2">🏘️</div><div><div class="ntag">✨ नया Feature</div><div class="nttl">पटना ज़िला अब ShareChat पर! 🔥</div><div class="nmeta"><span class="gd"></span> 47,832 लोग आज active · Top 5 का मौका</div></div></div>
+<div class="ncta">अभी देखें →</div><div style="clear:both"></div>
+</div>
+
+<!-- Lapsed user card — Addition 3B -->
+<div class="lapsed" id="lapsedCard" onclick="goScr(3)">
+<div class="l-title">🏘️ पटना में 3 दिन में क्या हुआ?</div>
+<div class="l-body">Ravi Kumar Zila #1 बने · 1,247 लोगों ने Chhath Moment join किया · आपकी rank बदल सकती है</div>
+<div class="l-cta">अभी देखें →</div>
+</div>
+
+<!-- Card 2 -->
+<div class="fc">
+<div class="fh"><div class="av">👩</div><div class="fi"><div class="fn">@shara khan ❤️ <span class="fs">🔥 89</span></div><div class="fm">80.5K views · 2d</div></div><div class="fmore">⋯</div></div>
+<div class="ftg">#☪️ ईद Status 😍 #☪️ ईद मुबारक #☪️ ईद के गाने #🍽️ ईद स्पेशल</div>
+<div class="fth" style="background:linear-gradient(135deg,#0a1628,#0d0d2e)"><span>☪️</span><span class="pl">▶</span><span class="dur">00:20</span></div>
+<div class="fac">
+<span class="fa" onclick="toast('📲','WhatsApp share')"><span class="fai">📲</span> 1.6K</span>
+<span class="fa" onclick="toast('💬','Comments')"><span class="fai">💬</span> 2</span>
+<span class="fa" onclick="doReact(this)"><span class="fai">♡</span> <span class="cnt">615</span></span>
+<span class="fa" onclick="toast('🔖','Saved!')"><span class="fai">🔖</span></span>
+</div></div>
+
+<!-- Card 3 -->
+<div class="fc">
+<div class="fh"><div class="av">🧑<div class="vf">✓</div></div><div class="fi"><div class="fn">अंकित राठी <span class="fs">🔥 312</span></div><div class="fm">55.9K views · 1d</div></div><div class="fmore">⋯</div></div>
+<div class="ftg">#🤙 सुपर स्टेटस #🌟 सुप्रभात सन्देश #❤️ जीवन की सीख #🌸 सत्य वचन</div>
+<div class="fth" style="background:linear-gradient(135deg,#1a1020,#0d0815)"><span>🌅</span><span class="pl">▶</span><span class="dur">00:45</span></div>
+<div class="fac">
+<span class="fa" onclick="toast('📲','WhatsApp share')"><span class="fai">📲</span> 1.6K</span>
+<span class="fa" onclick="toast('💬','Comments')"><span class="fai">💬</span> 2</span>
+<span class="fa" onclick="doReact(this)"><span class="fai">♡</span> <span class="cnt">615</span></span>
+<span class="fa" onclick="toast('🔖','Saved!')"><span class="fai">🔖</span></span>
+</div></div>
+<div style="height:16px"></div>
+</div>
+
+<!-- SEARCH -->
+<div class="s" id="sS">
+<div class="hh"><div class="sp" style="flex:1">🔍 खोजें — creators, topics, ज़िला...</div></div>
+<div style="padding:16px">
+<div class="sh" style="padding:0 0 10px">📂 Categories</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+<div class="cti" onclick="toast('😂','Comedy')">😂<br><span>Comedy</span></div>
+<div class="cti" onclick="toast('🙏','Devotional')">🙏<br><span>Devotional</span></div>
+<div class="cti" onclick="toast('🏏','Sports')">🏏<br><span>Sports</span></div>
+<div class="cti" onclick="toast('📚','Study')">📚<br><span>Study</span></div>
+<div class="cti" onclick="toast('📰','News')">📰<br><span>Local News</span></div>
+<div class="cti hl" onclick="goScr(3)">🏘️<br><span style="color:var(--orange)">मेरा ज़िला</span></div>
+</div>
+<style>.cti{background:var(--s2);border-radius:var(--r);padding:18px 8px;text-align:center;cursor:pointer;font-size:28px;border:1px solid var(--s5);-webkit-tap-highlight-color:transparent}.cti:active{transform:scale(.95)}.cti span{display:block;font-size:11px;color:#fff;font-weight:600;margin-top:6px}.cti.hl{border-color:var(--orange);background:rgba(249,115,22,.03)}</style>
+<div class="sh" style="padding:0 0 8px">⭐ Rising Creators <span class="sa" onclick="openOv('oL')">सब देखें →</span></div>
+<div class="crl"><div class="crr"><div class="av sm">👨‍🎤</div><div class="cri"><div class="crn">राजेश कुमार</div><div class="crm">12.4k · Comedy · पटना</div></div><button class="flb" onclick="doFol(this,'राजेश')">Follow</button></div>
+<div class="crr"><div class="av sm">👩‍🎤</div><div class="cri"><div class="crn">प्रिया सिंह</div><div class="crm">8.7k · Devotional · पटना</div></div><button class="flb" onclick="doFol(this,'प्रिया')">Follow</button></div>
+<div class="crr"><div class="av sm">🧑‍🎓</div><div class="cri"><div class="crn">विकास यादव</div><div class="crm">5.2k · Study · पटना</div></div><button class="flb" onclick="doFol(this,'विकास')">Follow</button></div></div>
+<style>.crr{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--s2)}.cri{flex:1}.crn{font-size:13px;color:#fff;font-weight:600}.crm{font-size:11px;color:var(--g2);margin-top:1px}.flb{background:var(--blue);color:#fff;border:none;padding:7px 18px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}.flb.dn{background:var(--s2);color:var(--g1);border:1px solid var(--s5)}</style>
+</div></div>
+
+<!-- APNA MANCH -->
+<div class="s" id="sM">
+<div class="mh">
+<div class="mt"><div class="ml"><span class="mb" onclick="goScr(0)">←</span><span class="mtitle">अपना मंच 🏘️</span></div>
+<div class="ma"><div class="mab" onclick="openOv('oN')">🔔<span class="nd">3</span></div><div class="mab" onclick="openOv('oL')">🏆</div></div></div>
+<div class="msub"><span class="gd"></span> 📍 पटना · 47,832 आज active</div>
+<div class="rt" style="margin:8px 0 0"><div class="rtb a" onclick="ring(0,this)">मेरा ज़िला</div><div class="rtb" onclick="ring(1,this)">मेरी भाषा</div><div class="rtb" onclick="ring(2,this)">मेरा भारत</div></div>
+</div>
+
+<!-- RING 0 -->
+<div id="r0">
+<!-- HOOK 1: Return banner -->
+<div class="rb" id="retBan" onclick="this.style.display='none';toast('👁️','Activity देखें');firstAction()">
+<div class="rbt">👁️ जब से आप गए थे...</div>
+<div class="rbb">340 reactions · 12 comments · rank #47 → #31</div>
+<div class="rbc">देखें →</div></div>
+
+<!-- HOOK 5: 90-sec action -->
+<div class="qa">
+<div class="qat">✅ आज का Zila action (90 seconds)</div>
+<div class="qar"><span>❤️ किसी video को like करें</span><span class="qp">+2 pts</span></div>
+<div class="qar"><span>🤫 "Dil में" save करें</span><span class="qp">+1 pt</span></div>
+<div class="qar"><span>🔥 Daily Moment देखें</span><span class="qp">+10 pts</span></div>
+<div class="qar"><span>📹 Video post करें</span><span class="qp">+50 pts</span></div>
+<div class="qan">Posting ज़रूरी नहीं — react करना काफ़ी है 💙</div>
+</div>
+
+<!-- Rank strip + HOOK 7 -->
+<div class="rs">
+<div class="rst"><div><div class="rsr" id="uRank">#31</div><div class="rsl">पटना में आपकी rank इस हफ़्ते</div></div>
+<div style="text-align:right"><div class="rslv"><span class="rd"></span> LIVE rank</div><div class="rsp">2,280 pts</div></div></div>
+<div class="pb"><div class="pf" style="width:62%"></div></div>
+<div class="rspg">⚡ Top 10 के लिए 340 points और चाहिए</div>
+<div class="rsth" id="rThreat">⚠️ Sanjay Bhai ने अभी post किया — आप #32 हो सकते हैं</div>
+<button class="rscta" onclick="openOv('oC')">Post करें +</button>
+</div>
+
+<!-- Daily moment -->
+<div class="dm" onclick="openOv('oC')">
+<div class="dml">🔥 आज का ज़िला moment</div>
+<div class="dmt">पटना में छठ पूजा की तैयारी — अपना video share करें 🙏</div>
+<div class="dmr"><div><div class="dmtl">⏰ समय बचा है</div><div class="dmtm" id="cdT">08:24:37</div></div>
+<div style="text-align:right"><div class="dmc">👥 1,247 participants</div><button class="dmcta">participate करें →</button></div></div>
+</div>
+
+<!-- HOOK scarcity -->
+<div class="scc">
+<div class="sct">⭐ इस हफ़्ते का Zila Star Badge</div>
+<div class="scs">Chhath Week 2025 · Comedy · पटना<br>केवल 5 badges available</div>
+<div class="scw">🔴 केवल 2 बचे हैं — expires Sunday</div>
+<div class="pb"><div class="pf" style="width:62%;background:var(--gold)"></div></div>
+<div class="scb"><span>आप #31</span><span>Top 5 = Badge मिला</span></div>
+</div>
+
+<!-- Stars -->
+<div class="sh">⭐ पटना के Rising Stars <span class="sa" onclick="openOv('oL')">सब देखें →</span></div>
+<div class="stars">
+<div class="star"><div class="sr g">#1</div><span class="sav">👩‍🎤</span><div class="san">Priya</div><div class="sap">2,450</div><div class="sac">Comedy 😂</div><button class="sfb" onclick="doFol(this,'Priya')">Follow</button></div>
+<div class="star"><div class="sr s">#2</div><span class="sav">👨‍🎤</span><div class="san">Rahul</div><div class="sap">2,280</div><div class="sac">Music 🎤</div><button class="sfb" onclick="doFol(this,'Rahul')">Follow</button></div>
+<div class="star"><div class="sr b">#3</div><span class="sav">👩</span><div class="san">Anita</div><div class="sap">2,100</div><div class="sac">Bhakti 🙏</div><button class="sfb" onclick="doFol(this,'Anita')">Follow</button></div>
+<div class="star you"><div class="sr n">#31</div><span class="sav">🙋</span><div class="san">आप</div><div class="sap">2,280</div><div class="sac">Comedy</div><button class="sfb" onclick="openOv('oC')">Post करें</button></div>
+<div class="star"><div class="sr n">#4</div><span class="sav">👨</span><div class="san">Sanjay</div><div class="sap">1,890</div><div class="sac">Comedy 😂</div><button class="sfb" onclick="doFol(this,'Sanjay')">Follow</button></div>
+<div class="star"><div class="sr n">#5</div><span class="sav">👩‍🦱</span><div class="san">Meena</div><div class="sap">1,720</div><div class="sac">Study 📚</div><button class="sfb" onclick="doFol(this,'Meena')">Follow</button></div>
+</div>
+
+<!-- LIVE -->
+<div class="lc" onclick="toast('🔴','LIVE join हो रहा है...')">
+<div class="lbg"><span class="ld"></span> LIVE</div>
+<div class="li"><div class="av sm">👨‍🎤</div><div><div style="font-size:13px;color:#fff;font-weight:700">Ravi Kumar</div><div style="font-size:11px;color:var(--g1)">भोजपुरी Comedy Live 🎭</div></div></div>
+<div class="lv">👁️ 2,847 देख रहे हैं · पटना ज़िला Creator</div>
+<button class="lj">Join करें →</button>
+</div>
+
+<!-- HOOK 10: Zila ki Jaan -->
+<div class="zkj">
+<div class="zkjt">💜 इस हफ़्ते की Zila ki Jaan</div>
+<div class="zkjb">Priya Sharma (पटना #1 Creator) ने चुना:</div>
+<div class="zkjq">"<b>Rajan bhai</b> — आपका Chhath video बहुत touching था। शुक्रिया 🙏"</div>
+<div class="zkjc" onclick="toast('👤','Rajan profile')">Rajan की profile देखें →</div>
+</div>
+
+<!-- Zila feed -->
+<div class="sh">📹 पटना की Videos इस हफ़्ते</div>
+<div class="zfcard fc">
+<div class="fh"><div class="av sm">👩‍🎤</div><div class="fi"><div class="fn" style="font-size:12px">Priya Sharma <span class="zp-pill">#1 ⭐</span></div><div class="fm">1 घंटे पहले</div></div><div class="fmore">⋯</div></div>
+<div class="fth" style="background:linear-gradient(135deg,#1a0a2e,#0d0520);height:180px"><span>🪔</span><span class="pl">▶</span><span class="dur">0:47</span></div>
+<div class="ftg" style="font-size:12px">छठ पूजा में मेरा look 😍🙏 #पटना #Chhath2025</div>
+<div class="fac">
+<span class="fa" onclick="doReact(this);firstAction()"><span class="fai">❤️</span> <span class="cnt">847</span></span>
+<span class="fa" onclick="toast('💬','Comments')"><span class="fai">💬</span> 124</span>
+<span class="fa" onclick="ptToast('🤫 +1 Zila Point','Dil में रख लिया (private)');firstAction()"><span class="fai">🤫</span> Dil में</span>
+<span class="fa" onclick="toast('🎁','Gift भेजें')"><span class="fai">🎁</span> 56</span>
+</div></div>
+<div class="zfcard fc">
+<div class="fh"><div class="av sm">👨</div><div class="fi"><div class="fn" style="font-size:12px">Arun Yadav <span class="rp-pill">#12</span></div><div class="fm">3 घंटे पहले</div></div><div class="fmore">⋯</div></div>
+<div class="fth" style="background:linear-gradient(135deg,#0d1a10,#0a2818);height:180px"><span>🏞️</span><span class="pl">▶</span><span class="dur">1:12</span></div>
+<div class="ftg" style="font-size:12px">पटना का गंगा घाट — कितना सुंदर! 🏞️ #पटना</div>
+<div class="fac">
+<span class="fa" onclick="doReact(this);firstAction()"><span class="fai">❤️</span> <span class="cnt">412</span></span>
+<span class="fa" onclick="toast('💬','Comments')"><span class="fai">💬</span> 67</span>
+<span class="fa" onclick="ptToast('🤫 +1 Zila Point','Dil में रख लिया');firstAction()"><span class="fai">🤫</span> Dil में</span>
+<span class="fa" onclick="toast('🎁','Gift भेजें')"><span class="fai">🎁</span> 12</span>
+</div></div>
+
+<!-- Sponsored -->
+<div class="spon">
+<div class="spt"><span class="spl">📍 पटना का Local Business</span><span class="sptg">Sponsored</span></div>
+<div class="spbd"><div class="splg">🍬</div><div><div class="spn">Shyam Sweets — पटना</div><div class="spd">छठ Prasad · Special 20% off 🪔</div></div></div>
+<button class="spcta" onclick="toast('📍','Shyam Sweets खुल रहा है...')">देखें →</button>
+</div>
+<div style="height:16px"></div>
+</div>
+
+<!-- RING 1 -->
+<div id="r1" style="display:none">
+<div class="bban"><div class="bbn">🗣️ भोजपुरी Belt</div><div class="bbd">पटना · वाराणसी · गोरखपुर · आरा · छपरा</div></div>
+<div class="sh">🎯 Belt Challenges</div>
+<div class="bch" onclick="toast('🎯','Challenge join!')"><div><div class="bct">भोजपुरी गाना Challenge 🎵</div><div class="bcm">3,245 videos · 5 districts</div></div><button class="bj">Join</button></div>
+<div class="bch" onclick="toast('🎯','Challenge join!')"><div><div class="bct">छठ पूजा स्पेशल 🪔</div><div class="bcm">8,912 videos · 5 districts</div></div><button class="bj">Join</button></div>
+<div class="sh">👑 Belt Leaders This Week</div>
+<div class="bll">
+<div class="blr"><div class="blrk">1</div><div class="av sm">👨‍🎤</div><div class="bli"><div class="bln">राजेश कुमार</div><div class="blm">पटना · Comedy</div></div><div class="blp">4,820</div></div>
+<div class="blr"><div class="blrk">2</div><div class="av sm">👩</div><div class="bli"><div class="bln">ममता देवी</div><div class="blm">वाराणसी · Devotional</div></div><div class="blp">4,510</div></div>
+<div class="blr"><div class="blrk">3</div><div class="av sm">🧑</div><div class="bli"><div class="bln">रवि पटेल</div><div class="blm">गोरखपुर · Music</div></div><div class="blp">4,120</div></div>
+</div><div style="height:16px"></div>
+</div>
+
+<!-- RING 2 -->
+<div id="r2" style="display:none">
+<div class="sh" style="padding-top:10px">🇮🇳 India Trending — भोजपुरी में</div>
+<div class="tc" onclick="toast('🔥','Trending')"><div class="trk india">India #1</div><div style="flex:1"><div class="ttt">#छठपूजा2025</div><div class="ttm">2.4M videos · 14 भाषाओं में</div></div></div>
+<div class="tc" onclick="toast('🔥','Trending')"><div class="trk state">Bihar #1</div><div style="flex:1"><div class="ttt">#भोजपुरीComedy</div><div class="ttm">890K videos · बिहार + UP</div></div></div>
+<div class="tc" onclick="toast('🔥','Rising!')"><div class="trk rising">Rising 🚀</div><div style="flex:1"><div class="ttt">#पटनाCricket</div><div class="ttm">45K videos · पटना से शुरू</div></div></div>
+<div style="height:16px"></div>
+</div>
+</div>
+
+<!-- PROFILE -->
+<div class="s" id="sP">
+<div class="ph2"><div class="pav">👤</div><div class="pnm">Rajan Kumar</div><div class="phl">@rajan_patna · पटना, Bihar</div></div>
+<div class="pst">
+<div class="ps"><div class="pv" style="color:var(--gold)">2,280</div><div class="pl">Zila Pts</div></div>
+<div class="ps"><div class="pv">847</div><div class="pl">Followers</div></div>
+<div class="ps"><div class="pv">312</div><div class="pl">Following</div></div>
+<div class="ps"><div class="pv">47</div><div class="pl">Videos</div></div>
+</div>
+
+<!-- Identity — HOOK 8 -->
+<div class="idc">
+<div class="idct">🏘️ पटना ज़िला Identity</div>
+<div class="idcr"><div class="idcb">#31</div><div class="idcm">
+<div class="im">🔥 <b>7-Day Streak</b> active</div>
+<div class="im">⭐ Lifetime: <b>12,847 points</b></div>
+<div class="im">📊 इस हफ़्ते: <b>2,280 points</b></div>
+<div class="im">↑16 पिछले हफ़्ते से बेहतर</div>
+</div></div>
+<div class="pb"><div class="pf" style="width:62%"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--g2);margin-top:4px"><span>Top 10 तक</span><span>62%</span></div>
+<!-- HOOK 8: Non-transferability -->
+<div class="idcl">🔒 यह identity केवल ShareChat पर है<br>847 Zila followers कहीं और नहीं मिलेंगे</div>
+<div style="font-size:11px;color:var(--g1);margin:10px 0 6px;font-weight:600">🏅 Achievements</div>
+<div class="idcbg">
+<div class="bdg u"><span class="be">🔥</span>7-Day<br>Streak</div>
+<div class="bdg u"><span class="be">⭐</span>Top 50</div>
+<div class="bdg u"><span class="be">🎭</span>Comedy<br>Star</div>
+<div class="bdg l"><span class="be">🏆</span>Top 10</div>
+<div class="bdg l"><span class="be">👑</span>Zila<br>King</div>
+</div></div>
+
+<!-- HOOK 9: Badge History -->
+<div class="bh">
+<div class="bht">🏅 मेरी Badge History</div>
+<div class="bhi"><span class="bhic">⭐</span><div><div class="bhn">Diwali 2024 · पटना #7 · Comedy</div><div class="bhm">Oct 2024</div></div></div>
+<div class="bhi"><span class="bhic">⭐</span><div><div class="bhn">Holi 2024 · पटना #12 · Comedy</div><div class="bhm">Mar 2024</div></div></div>
+<div class="bhi"><span class="bhic">⭐</span><div><div class="bhn">Chhath 2023 · पटना #19 · Comedy</div><div class="bhm">Nov 2023</div></div></div>
+<div class="bhi lk"><span class="bhic">🔒</span><div><div class="bhn">Chhath 2025 · इस हफ़्ते earn करें</div><div class="bhm">अभी — Top 5 में आएं</div></div></div>
+</div>
+
+<!-- Festival Streaks -->
+<div class="fsk">
+<div class="fskt">🙏 Festival Streaks</div>
+<div class="fsr"><span class="fsn">Chhath Puja</span><span class="fsv">3 साल 🔥</span></div>
+<div class="fsr"><span class="fsn">Holi</span><span class="fsv">2 साल ✅</span></div>
+<div class="fsr"><span class="fsn">Diwali</span><span class="fsv">4 साल 🏆</span></div>
+<div class="fsr"><span class="fsn">IPL Season</span><span class="fsv">2 साल ✅</span></div>
+</div>
+
+<div class="sh">📹 आपकी Videos</div>
+<div class="vg">
+<div class="vi" style="background:linear-gradient(135deg,#1a0a2e,#0d0520)" onclick="toast('▶️','Video')">🎭<div class="vw">▶ 2.3k</div></div>
+<div class="vi" style="background:linear-gradient(135deg,#1a1020,#2a1040)" onclick="toast('▶️','Video')">🙏<div class="vw">▶ 5.1k</div></div>
+<div class="vi" style="background:linear-gradient(135deg,#0d1a10,#0a2818)" onclick="toast('▶️','Video')">🏏<div class="vw">▶ 1.8k</div></div>
+<div class="vi" style="background:linear-gradient(135deg,#0d0520,#1a0a2e)" onclick="toast('▶️','Video')">😂<div class="vw">▶ 890</div></div>
+<div class="vi" style="background:linear-gradient(135deg,#2a1040,#1a1020)" onclick="toast('▶️','Video')">🎵<div class="vw">▶ 3.4k</div></div>
+<div class="vi" style="background:linear-gradient(135deg,#0a2818,#0d1a10)" onclick="toast('▶️','Video')">🪔<div class="vw">▶ 7.2k</div></div>
+</div><div style="height:16px"></div>
+</div>
+</div>
+
+<!-- === OVERLAYS === -->
+
+<!-- Notifications -->
+<div class="ov" id="oN">
+<div class="ovh"><span class="ovbk" onclick="closeOv('oN')">←</span><span class="ovt">Notifications</span></div>
+<div class="nli">
+<!-- Addition 1: Persona A — Cheerful -->
+<div class="nit ur" onclick="toast('🏘️','Daily Moment');goScr(3);closeOv('oN')"><div class="nic">🏘️</div><div class="nbd"><div class="nmsg"><b>पटना ज़िला — आज का Moment</b><br>छठ पूजा में 1,247 लोग participate कर रहे हैं। Video post करके rank बढ़ाएं! ⚡</div><div class="ntm">अभी · Mera Zila</div></div></div>
+<!-- Persona B — Gentle guilt -->
+<div class="nit ur" onclick="toast('⭐','Rank update!')"><div class="nic">⭐</div><div class="nbd"><div class="nmsg"><b>Rank बढ़ी!</b> आप #47 → #31 हुए<br>340 reactions आपके video को। Top 10 बस 340 points!</div><div class="ntm">2 घंटे पहले · ज़िला Rank</div></div></div>
+<!-- Persona C — Urgency -->
+<div class="nit ur" onclick="toast('🔴','LIVE join')"><div class="nic">🔴</div><div class="nbd"><div class="nmsg"><b>Ravi Kumar</b> अभी LIVE है पटना में<br>2,847 लोग देख रहे हैं</div><div class="ntm">5 मिनट पहले · ज़िला LIVE</div></div></div>
+<div class="nit" onclick="toast('❤️','Post देखें')"><div class="nic">❤️</div><div class="nbd"><div class="nmsg"><b>Priya Sharma</b> ने आपका video like किया<br>पटना की #1 creator ने react किया!</div><div class="ntm">1 घंटे पहले</div></div></div>
+<div class="nit" onclick="toast('💬','Comments')"><div class="nic">💬</div><div class="nbd"><div class="nmsg">3 नए comments आपके video पर<br>"बहुत बढ़िया भाई 🔥" और 2 और</div><div class="ntm">3 घंटे पहले</div></div></div>
+</div>
+<!-- NOTIFICATION TIMING SPEC (for engineering):
+     DO NOT send at fixed times. ML learns user boredom windows.
+     Typical Bharat windows: 12:25-12:45pm (lunch), 8:30-9:15pm (post-dinner)
+     Personalised timing = 35-50% higher CTR (Duolingo data)
+     PERSONA SELECTION: Day 1-3 = A (cheerful), Missed yesterday = B (gentle guilt),
+     Wed-Sat + badge gap closeable = C (urgency). Never B twice in a row. Max 3/day. -->
+<div class="ngr"><p>🛡️ <b>Notification guardrail active</b><br>दिन में max 3 Zila notifications — spam नहीं होगा</p></div>
+<!-- HOOK 3: Distinct sound -->
+<div class="nsd">🔔 Zila notifications की अलग ringtone है · Settings में customise करें →</div>
+<!-- OPERANT CONDITIONING: Unique Zila chime (440hz, 0.3s upward).
+     After 21 days: Pavlovian anticipation before reading notification. -->
+</div>
+
+<!-- Leaderboard -->
+<div class="ov" id="oL" style="overflow-y:auto">
+<div class="lbh">
+<div style="display:flex;align-items:center;gap:12px"><span class="ovbk" onclick="closeOv('oL')">←</span><div><span class="ovt">🏆 पटना ज़िला Leaderboard</span><div class="lbs">Chhath Puja Week 2025 · Resets Sunday</div></div></div>
+<div class="lbc2">
+<div class="lbc a" onclick="scat(this)">सभी</div><div class="lbc" onclick="scat(this)">Comedy 😂</div><div class="lbc" onclick="scat(this)">Devotional 🙏</div><div class="lbc" onclick="scat(this)">Music 🎤</div><div class="lbc" onclick="scat(this)">Sports 🏏</div><div class="lbc" onclick="scat(this)">Study 📚</div>
+</div></div>
+<div class="lbrs">🔄 Rank हर हफ़्ते reset होती है। Lifetime badges और history हमेशा बनी रहती है।</div>
+<div class="pod">
+<div class="pdi"><div class="pdr">2</div><div class="pda">👨‍🎤</div><div class="pdn">Rahul</div><div class="pdp">2,280</div></div>
+<div class="pdi"><div class="pdr">1</div><div class="pda">👩‍🎤</div><div class="pdn">Priya</div><div class="pdp">2,450</div></div>
+<div class="pdi"><div class="pdr">3</div><div class="pda">👩</div><div class="pdn">Anita</div><div class="pdp">2,100</div></div>
+</div>
+<div class="lbl">
+<div class="lbr"><div class="lrrk">4</div><div class="av sm">👨</div><div class="lri"><div class="lrn">Sanjay Mishra</div><div class="lrc">Comedy 😂</div></div><div class="lrp">1,980</div><div class="lrt" style="color:var(--green)">↑2</div></div>
+<div class="lbr"><div class="lrrk">5</div><div class="av sm">🧑</div><div class="lri"><div class="lrn">Arun Yadav</div><div class="lrc">Sports 🏏</div></div><div class="lrp">1,845</div><div class="lrt" style="color:var(--red)">↓1</div></div>
+<div class="lbr"><div class="lrrk">6</div><div class="av sm">👩‍🦱</div><div class="lri"><div class="lrn">Meena Kumari</div><div class="lrc">Study 📚</div></div><div class="lrp">1,720</div><div class="lrt" style="color:var(--green)">↑4</div></div>
+<div class="lbr" style="opacity:.2;padding:4px 10px"><div class="lrrk">···</div><div class="lri"><div class="lrn" style="color:var(--g2)">...</div></div></div>
+<div class="lbr me"><div class="lrrk" style="color:var(--blue)">#31</div><div class="av sm">🙋</div><div class="lri"><div class="lrn">आप</div><div class="lrc">Comedy 😂 · <span style="color:var(--green)">↑16 इस हफ़्ते</span></div></div><div class="lrp" style="font-size:14px">2,280</div></div>
+</div>
+<div class="pg">
+<div class="pgt">🎯 Rank कैसे बढ़ाएं?</div>
+<div class="pgr"><span class="pga">📹 Video post करें</span><span class="pgp">+50 pts</span></div>
+<div class="pgr"><span class="pga">❤️ हर reaction</span><span class="pgp">+2 pts</span></div>
+<div class="pgr"><span class="pga">🔥 Daily moment</span><span class="pgp">+100 pts</span></div>
+<div class="pgr"><span class="pga">🎁 Zila Live में gift</span><span class="pgp">+5x pts</span></div>
+<div class="pgr"><span class="pga">🤫 "Dil में" save</span><span class="pgp">+1 pt</span></div>
+<div class="pgr"><span class="pga">💎 Paid boost (optional)</span><span class="pgp">varies</span></div>
+</div>
+<button class="lbtn" onclick="closeOv('oL');openOv('oC')">अभी Post करें — Rank बढ़ाएं ⚡</button>
+</div>
+
+<!-- Create -->
+<div class="ov cov" id="oC">
+<div class="cvh"><span class="cvx" onclick="closeOv('oC')">✕</span><span class="cvt">📹 नया Video</span><span style="width:34px"></span></div>
+<div class="cam">📷<div class="ch">Video record करें</div></div>
+<div class="cvhi">🏘️ यह video पटना ज़िला में post होगी — Rank बढ़ेगी + 50 points</div>
+<div class="cvtg">
+<div class="tog"><div><div class="togt">🏘️ मेरा ज़िला में Post करें</div><div class="togp">+50 ज़िला points</div></div><div class="togs"><div class="togk"></div></div></div>
+<div class="tog"><div><div class="togt">🔥 आज के Moment में participate — छठ Puja</div><div class="togp">+100 bonus points</div></div><div class="togs"><div class="togk"></div></div></div>
+</div>
+<div class="cvbt"><div class="cfl">🔄</div><div class="cap" onclick="capture()"><div class="capi">⏺</div></div><div class="csp"></div></div>
+</div>
+
+<!-- Sunday Reveal -->
+<div class="rev" id="rev">
+<div class="revc">
+<div class="rvt">🏆 इस हफ़्ते के</div>
+<div class="rvs">पटना ज़िला Stars</div>
+<div class="rvw">Chhath Puja Week 2025</div>
+<div class="rvl">
+<div class="rvr"><div class="rvrk">🥇</div><div class="rvrn">Priya Sharma</div><div class="rvrc">Comedy</div><div class="rvrp">2,450</div></div>
+<div class="rvr"><div class="rvrk">🥈</div><div class="rvrn">Rahul Yadav</div><div class="rvrc">Music</div><div class="rvrp">2,280</div></div>
+<div class="rvr"><div class="rvrk">🥉</div><div class="rvrn">Anita Devi</div><div class="rvrc">Bhakti</div><div class="rvrp">2,100</div></div>
+<div class="rvr"><div class="rvrk">4</div><div class="rvrn">Sanjay Bhai</div><div class="rvrc">Comedy</div><div class="rvrp">1,890</div></div>
+<div class="rvr"><div class="rvrk">5</div><div class="rvrn">Meena Kumari</div><div class="rvrc">Study</div><div class="rvrp">1,720</div></div>
+</div>
+<div class="rvme"><div class="rvmet">आपकी rank: #31 📤</div></div>
+<button class="rvwa" onclick="closeRev();toast('📲','Copied! WhatsApp पर share करें')">WhatsApp पर Share करें</button>
+<button class="rvcl" onclick="closeRev()">बंद करें</button>
+</div></div>
+
+<!-- Post-session satisfaction — Addition 2 -->
+<div class="pss" id="pss">
+<div class="pss-check">✅</div>
+<div class="pss-msg">आज आपने पटना के लिए कुछ किया</div>
+<div class="pss-pts" id="psspts">+2 Zila Points</div>
+<div class="pss-bar"><div class="pss-fill"></div></div>
+<div class="pss-sub">#31 → moving ↑</div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bn">
+<div class="ni a" onclick="goScr(0)" data-s="0"><span class="ic">🏠</span><span class="lb">Home</span></div>
+<div class="ni" onclick="goScr(1)" data-s="1"><span class="ic">🔍</span><span class="lb">Search</span></div>
+<div class="nc" onclick="openOv('oC')">+</div>
+<div class="ni" onclick="goScr(3)" data-s="3" style="position:relative"><span class="zp"></span><span class="tab-badge" id="tBadge">3</span><span class="ic">🏘️</span><span class="lb" style="color:var(--blue);font-weight:700">मंच</span></div>
+<div class="ni" onclick="goScr(4)" data-s="4"><span class="ic">👤</span><span class="lb">Profile</span></div>
+</div>
+</div>
+
+<script>
+// BADGE LOGIC (Addition 3A): Badge count = unseen Zila events. Persists until tab open. Cap at 9+.
+var badgeCount=3;
+var sessionActionDone=false;
+
+var sMap={0:'sH',1:'sS',3:'sM',4:'sP'};
+var navs=document.querySelectorAll('.ni');
+
+function goScr(i){
+  document.querySelectorAll('.ov').forEach(function(o){o.classList.remove('a')});
+  document.getElementById('rev').style.display='none';
+  var id=sMap[i];if(!id)return;
+  document.querySelectorAll('.s').forEach(function(s){s.classList.remove('a')});
+  document.getElementById(id).classList.add('a');
+  document.getElementById('sc').scrollTop=0;
+  navs.forEach(function(n){n.classList.remove('a')});
+  navs.forEach(function(n){if(parseInt(n.dataset.s)===i)n.classList.add('a')});
+  // Clear badge when manch tab opened
+  if(i===3){badgeCount=0;var b=document.getElementById('tBadge');if(b)b.style.display='none';}
+}
+
+function ring(i,el){
+  document.querySelectorAll('.rtb').forEach(function(t){t.classList.remove('a')});el.classList.add('a');
+  for(var j=0;j<3;j++)document.getElementById('r'+j).style.display=j===i?'block':'none';
+}
+
+function openOv(id){document.getElementById(id).classList.add('a')}
+function closeOv(id){var e=document.getElementById(id);e.style.animation='none';e.offsetHeight;e.style.animation='';e.classList.remove('a')}
+
+function stab(el){document.querySelectorAll('.ftb').forEach(function(t){t.classList.remove('a')});el.classList.add('a')}
+function scat(el){document.querySelectorAll('.lbc').forEach(function(c){c.classList.remove('a')});el.classList.add('a')}
+
+function doFol(btn,name){btn.textContent='Following ✓';btn.classList.add('dn');btn.style.background='var(--s2)';btn.style.color='var(--g1)';toast('✅',name+' को follow किया!')}
+
+function toast(icon,title,sub){
+  var c=document.getElementById('tc'),t=document.createElement('div');
+  t.className='tst';t.innerHTML='<span class="tsi">'+icon+'</span><div class="tsb"><div class="tst2">'+title+'</div>'+(sub?'<div class="tss">'+sub+'</div>':'')+'</div>';
+  c.appendChild(t);setTimeout(function(){t.style.animation='to2 .2s ease forwards';setTimeout(function(){t.remove()},200)},2500);
+}
+function ptToast(title,sub){
+  var c=document.getElementById('tc'),t=document.createElement('div');
+  t.className='tst pts';t.innerHTML='<span class="tsi">⚡</span><div class="tsb"><div class="tst2">'+title+'</div>'+(sub?'<div class="tss">'+sub+'</div>':'')+'</div>';
+  c.appendChild(t);setTimeout(function(){t.style.animation='to2 .2s ease forwards';setTimeout(function(){t.remove()},200)},1800);
+}
+
+// HOOK 6: Reaction animation with climbing count
+function doReact(el){
+  var cnt=el.querySelector('.cnt');
+  if(cnt){
+    var raw=cnt.textContent.replace(/,/g,'').replace(/K/g,'000');
+    var num=parseFloat(raw);if(isNaN(num))num=0;
+    num++;cnt.textContent=num>=1000?(num/1000).toFixed(1)+'K':num.toLocaleString();
+  }
+  // Float +2 pts
+  var fl=document.createElement('span');fl.className='rfloat';fl.textContent='+2 pts';
+  el.style.position='relative';el.appendChild(fl);setTimeout(function(){fl.remove()},800);
+  // Flash rank
+  var rk=document.getElementById('uRank');
+  if(rk){rk.style.color='var(--gold)';setTimeout(function(){rk.style.color='#fff'},400)}
+  ptToast('❤️ +2 Zila Points!','Like दिया — rank बढ़ेगी!');
+}
+
+// Addition 2: Post-session satisfaction — show ONCE per session on first meaningful action
+function firstAction(){
+  if(sessionActionDone)return;sessionActionDone=true;
+  // POST-SESSION SATISFACTION SPEC: Show ONCE per session after first meaningful action.
+  // "Meaningful" = post, react to 3+ videos, join moment, or private save.
+  // 2-second screen = emotional closure. Without it session ends flatly.
+  setTimeout(function(){
+    var p=document.getElementById('pss');p.style.display='flex';p.classList.add('a');
+    setTimeout(function(){p.style.display='none';p.classList.remove('a')},2200);
+  },600);
+}
+
+function capture(){
+  closeOv('oC');
+  setTimeout(function(){ptToast('+150 Zila Points! 🎉','Video posted to पटना ज़िला')},300);
+  if(!sessionActionDone){sessionActionDone=true;
+    setTimeout(function(){
+      var p=document.getElementById('pss');
+      document.getElementById('psspts').textContent='+150 Zila Points';
+      p.style.display='flex';p.classList.add('a');
+      setTimeout(function(){p.style.display='none';p.classList.remove('a')},2200);
+    },800);
+  }
+}
+
+// Countdown
+(function(){
+  var h=8,m=24,s=37,el=document.getElementById('cdT');
+  setInterval(function(){if(--s<0){s=59;if(--m<0){m=59;if(--h<0){h=23;m=59;s=59}}}
+  el.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')},1000);
+})();
+
+// HOOK 7: Rank threat rotation
+(function(){
+  var threats=['⚠️ Sanjay Bhai ने अभी post किया — आप #32 हो सकते हैं','⚠️ Meena ने 3 videos post किए — rank बदल सकती है','⚡ अभी react करें — rank secure करें','⚠️ Arun ने daily moment complete किया — competition बढ़ रही है'];
+  var i=0,el=document.getElementById('rThreat');
+  setInterval(function(){i=(i+1)%threats.length;el.style.opacity=0;setTimeout(function(){el.textContent=threats[i];el.style.opacity=1},300)},8000);
+  el.style.transition='opacity .3s';
+})();
+
+// Sunday reveal — demo after 5s
+setTimeout(function(){document.getElementById('rev').style.display='flex';document.getElementById('rev').classList.add('a')},5000);
+function closeRev(){document.getElementById('rev').style.display='none';document.getElementById('rev').classList.remove('a')}
+
+// LAPSED USER TRIGGER (Addition 3B):
+// Condition: user opened app but has not tapped Apna Manch in 3+ days
+// Position: card #2 in home feed. Copy: summarise what happened in Zila.
+// Never show >1/day. Never show if already on Manch tab.
+</script>
+</body>
+</html>

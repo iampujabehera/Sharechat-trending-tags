@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ShareChat real-app design tokens.
+   These mirror the tailwind.config.ts values so non-Tailwind code paths
+   (raw style attrs, global selectors) reach the same palette. */
+:root {
+  --black: #000000;
+  --surface: #0d0d0d;
+  --surface2: #161616;
+  --blue: #3b82f6;
+  --orange: #e85d24;
+  --gold: #f59e0b;
+  --green: #16a34a;
+  --red: #dc2626;
+  --text: #ffffff;
+  --text2: #9ca3af;
+  --text3: #4b5563;
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Safe-area insets — non-zero only on devices with notches/home-bar
+     (iPhone X+, modern Android with cutouts). Falls back to 0 elsewhere. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Tunable touch-targets. Bottom nav must be ≥56px for thumb reach;
+     the spec target is 64px. */
+  --bottom-nav-height: 64px;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+html,
+body {
+  background: #050505;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Noto Sans Devanagari", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent horizontal scroll on every device, regardless of any inner
+     element sizing mistakes downstream. */
+  overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  /* Mobile-first: app fills the viewport. dvh handles the iOS Safari
+     address-bar shrink-grow without breaking the layout. vh is the
+     fallback for browsers that don't support dvh. */
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Disable rubber-band scroll above the app shell so safe-area paddings
+     stay glued. */
+  overscroll-behavior-y: contain;
+}
+
+/* Desktop preview: center the app in a phone-shaped frame so the design
+   still reads as "mobile prototype" on a wide screen. */
+@media (min-width: 640px) {
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
+
+/* ---- App shell --------------------------------------------------------
+   Mobile: full viewport, flex column, no fake frame.
+   Desktop (≥640px): centered 393px-wide rounded frame, capped at 852px
+   (or whatever the viewport allows minus padding).
+*/
+.app-shell {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--black);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .app-shell {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 393px;
+    /* Cap height at 852px on tall desktops, but never overflow the
+       viewport. Also subtract the body's 24px×2 padding. */
+    height: min(852px, calc(100dvh - 48px));
+    min-height: 0;
+    border-radius: 44px;
+    border: 2px solid #222;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* ---- Safe-area helpers -----------------------------------------------
+   Use these on the topmost header (safe-pt) and on the bottom nav /
+   any sheet bottom button (safe-pb) so notched devices don't clip them.
+*/
+.safe-pt {
+  padding-top: max(var(--safe-top), 8px);
+}
+.safe-pb {
+  padding-bottom: var(--safe-bottom);
+}
+.safe-px {
+  padding-left: max(var(--safe-left), 0px);
+  padding-right: max(var(--safe-right), 0px);
+}
+
+/* ---- Bottom nav -------------------------------------------------------
+   Sits as the last child of .app-shell. Flex column above it does the
+   work — no fixed/absolute positioning, so content scrolls cleanly
+   between the header and the nav.
+*/
+.bottom-nav {
+  flex-shrink: 0;
+  background: var(--black);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ---- Skeleton shimmer ------------------------------------------------ */
+.skel {
+  background: linear-gradient(
+    90deg,
+    var(--surface) 0%,
+    var(--surface2) 50%,
+    var(--surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border: 1px solid var(--border);
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ---- Heat bar -------------------------------------------------------- */
+.heat-bar {
+  position: relative;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.heat-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--orange), var(--gold));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ---- Detail-overlay ---------------------------------------------------
+   Backdrop covers the entire viewport. The sheet itself is positioned by
+   its own component classes (full-width on mobile, sm:max-w-[393px] on
+   desktop preview).
+*/
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 50;
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* "LIVE" pulse dot on the आज का दिन strip when an event is happening today. */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+/* Detail-overlay sheet height. Two declarations: vh fallback first,
+   then dvh for browsers that handle the shrinking iOS browser chrome
+   correctly. */
+.detail-sheet {
+  max-height: 92vh;
+  max-height: 92dvh;
+}

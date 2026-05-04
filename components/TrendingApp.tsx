@@ -244,13 +244,8 @@ function TrendingTabContent(props: {
         <span>
           {minsAgo === 0 ? "अभी अपडेट हुआ" : `${minsAgo} मिनट पहले अपडेट हुआ`}
           {" • "}
-          {sourceCount} {sourceCount === 1 ? "source" : "sources"}
+          {sourceCount} {sourceCount === 1 ? "जगह से" : "जगहों से"}
         </span>
-        {props.data.fromCache && (
-          <span className="text-[9px] uppercase font-bold tracking-wider text-sc-gold bg-sc-surface2 px-2 py-[2px] rounded">
-            Cached
-          </span>
-        )}
       </div>
 
       {/* "आज का दिन" — calendar-driven, separate visual lane so festivals
@@ -259,16 +254,20 @@ function TrendingTabContent(props: {
         <TodayStrip tags={todayStrip} onSelect={props.onSelect} />
       )}
 
-      {/* Trending leaderboard — news/social signal driven. */}
-      <div className="flex items-center justify-between px-4 pt-2 pb-2">
-        <div className="text-[12px] font-bold text-sc-text uppercase tracking-wider">
-          🔥 अभी ट्रेंडिंग
+      {/* Trending leaderboard — news/social signal driven.
+          Section header matches ShareChat's actual UI exactly: "TRENDING TAGS"
+          in English uppercase. Even on Hindi-first surfaces ShareChat keeps
+          structural section labels in English (consistent with Swiggy, Zomato,
+          BookMyShow patterns); we follow the same convention so the strip
+          feels native rather than an outsider's reinterpretation. */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="text-[11px] font-bold text-sc-text2 uppercase tracking-[0.08em]">
+          Trending tags
         </div>
-        <div className="text-[10px] text-sc-text3">{props.data.tags.length} topics</div>
       </div>
-      <div className="flex flex-col gap-[6px] px-1 pb-2">
-        {props.data.tags.map((t, i) => (
-          <TrendCard key={t.id} tag={t} rank={i + 1} onTap={() => props.onSelect(t)} />
+      <div className="flex flex-col">
+        {props.data.tags.map((t) => (
+          <TrendCard key={t.id} tag={t} onTap={() => props.onSelect(t)} />
         ))}
       </div>
     </>
@@ -293,10 +292,13 @@ function TodayStrip({
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+      {/* Section header — matches ShareChat's "TRENDING TAGS" uppercase-English
+          structural pattern. The Hindi "आज का दिन" sits as a subtitle so the
+          editorial concept (today's calendar context) is still legible. */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-1">
         <div className="flex items-center gap-2">
-          <div className="text-[13px] font-bold text-sc-text uppercase tracking-wider">
-            🎯 आज का दिन
+          <div className="text-[11px] font-bold text-sc-text2 uppercase tracking-[0.08em]">
+            Today · आज का दिन
           </div>
           {hasTodayEvent && (
             <span className="flex items-center gap-1 text-[9px] uppercase tracking-wider font-bold text-sc-orange bg-sc-orange/10 px-2 py-[2px] rounded-full">
@@ -308,7 +310,6 @@ function TodayStrip({
             </span>
           )}
         </div>
-        <div className="text-[10px] text-sc-text3">कैलेंडर से · {tags.length} events</div>
       </div>
       <div
         className="flex gap-[10px] px-3 pb-3 overflow-x-auto"
@@ -387,70 +388,51 @@ function countdownLabel(description: string): string {
   return "जल्द";
 }
 
-function TrendCard({
-  tag,
-  rank,
-  onTap,
-}: {
-  tag: TrendingTag;
-  rank: number;
-  onTap: () => void;
-}) {
-  const accent = CATEGORY_COLORS[tag.category];
+// Refactored to match ShareChat's actual TRENDING TAGS list pattern: flat rows
+// with subtle dividers, emoji as semantic prefix, single-line Hindi headline.
+// We keep our differentiator — the hook description — as a smaller second line.
+// All the rich metadata (hashtag, rank, source pills, heat bar) moves to the
+// detail overlay where it earns its space; on the strip itself it was visual
+// noise that competed with the headline for the user's attention.
+function TrendCard({ tag, onTap }: { tag: TrendingTag; onTap: () => void }) {
   return (
     <button
       onClick={onTap}
-      className="block text-left mx-3 bg-sc-black border border-[var(--border)] rounded-[12px] p-[14px] active:scale-[0.985] transition relative overflow-hidden"
+      className="block w-full text-left px-4 py-[11px] active:bg-sc-surface2 hover:bg-sc-surface2 transition border-b border-[var(--border)]"
     >
-      {/* Left accent bar */}
-      <span
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: accent }}
-        aria-hidden
-      />
-
-      <div className="flex items-start gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-full bg-sc-surface2 flex items-center justify-center text-[22px] shrink-0">
+      <div className="flex items-start gap-3">
+        {/* Emoji as semantic prefix — same role ShareChat's 📢 / 😢 play */}
+        <span className="text-[20px] leading-none mt-[2px] shrink-0">
           {tag.emoji}
-        </div>
+        </span>
+
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap min-w-0">
-            <span className="text-[15px] font-bold text-sc-text truncate min-w-0 max-w-full">
-              {tag.displayName}
-            </span>
-            <span className="text-[11px] font-semibold text-sc-blue truncate max-w-full">
-              {tag.tag}
-            </span>
+          {/* Hindi headline — single line, the primary tap target */}
+          <div className="text-[14px] font-semibold text-sc-text truncate">
+            {tag.displayName}
           </div>
-          <div className="text-[11px] text-sc-text2 mt-[3px] leading-[1.5] line-clamp-2">
+          {/* Hook description — the differentiator vs ShareChat's headline-only
+              rows. Smaller, second line, single-line truncation so the row stays
+              dense. This is the line that earns the tap. */}
+          <div className="text-[11px] text-sc-text2 mt-[2px] line-clamp-1 leading-[1.45]">
             {tag.description}
           </div>
-          <div className="flex items-center gap-2 mt-[8px] flex-wrap">
-            <span
-              className="text-[9px] uppercase tracking-wider font-bold px-[6px] py-[2px] rounded"
-              style={{ background: `${accent}25`, color: accent }}
-            >
-              #{rank} · {CATEGORY_LABELS_HI[tag.category]}
-            </span>
-            {tag.sources.map((s) => (
-              <span
-                key={s}
-                className="text-[9px] uppercase tracking-wider font-semibold text-sc-text3 bg-sc-surface2 px-[6px] py-[2px] rounded"
-                title={`Confirmed by ${s}`}
-              >
-                {sourceShort(s)}
-              </span>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-[8px]">
-            <div className="heat-bar flex-1">
-              <span style={{ width: `${tag.heatScore}%` }} />
-            </div>
-            <span className="text-[11px] font-bold text-sc-orange tabular-nums">
-              🔥 {tag.heatScore}
-            </span>
-          </div>
         </div>
+
+        {/* Subtle heat indicator on the right. Only rendered when the score
+            is high enough to be meaningful — a 50/100 trend doesn't need a
+            badge shouting at the user. Color-graded: orange for very hot,
+            muted gray for warm. Replaces the full bar+number which was
+            dashboard-y on a consumer surface. */}
+        {tag.heatScore >= 80 ? (
+          <span className="text-[10px] font-bold text-sc-orange shrink-0 mt-[3px] tabular-nums">
+            🔥 {tag.heatScore}
+          </span>
+        ) : tag.heatScore >= 60 ? (
+          <span className="text-[10px] text-sc-text3 shrink-0 mt-[3px] tabular-nums">
+            {tag.heatScore}
+          </span>
+        ) : null}
       </div>
     </button>
   );
@@ -532,9 +514,7 @@ function FestivalTabContent({
 
       <div className="px-5 pb-8 text-center">
         <div className="text-[10px] text-sc-text3 leading-[1.5]">
-          Calendar data: <code>data/cultural-calendar.json</code>
-          <br />
-          Festivals + cricket fixtures, updated quarterly.
+          त्योहार + cricket fixtures · हर तिमाही update
         </div>
       </div>
     </>
@@ -663,37 +643,23 @@ function EmptyState() {
 }
 
 function ComingSoon({ tab }: { tab: string }) {
+  const tabHi: Record<string, string> = {
+    video: "वीडियो",
+    following: "Following",
+    festival: "त्योहार",
+    trending: "ट्रेंडिंग",
+  };
+  const label = tabHi[tab] ?? tab;
   return (
     <div className="px-6 py-10 text-center">
       <div className="text-[40px] mb-3">🚧</div>
-      <div className="text-sc-text font-bold mb-1">{tab} जल्द आएगा</div>
+      <div className="text-sc-text font-bold mb-1">{label} जल्द आएगा</div>
       <div className="text-[13px] text-sc-text2">अभी के लिए Trending tab पर जाएँ।</div>
     </div>
   );
 }
 
 // ----------------------- helpers ---------------------------------------
-
-function sourceShort(s: string): string {
-  switch (s) {
-    case "newsapi":
-      return "News";
-    case "rss":
-      return "RSS";
-    case "youtube":
-      return "YT";
-    case "google_trends":
-      return "Search";
-    case "reddit_india":
-      return "r/india";
-    case "reddit_cricket":
-      return "r/cricket";
-    case "reddit_bollywood":
-      return "r/bolly";
-    default:
-      return s;
-  }
-}
 
 function minutesBetween(a: Date, b: Date): number {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60_000));

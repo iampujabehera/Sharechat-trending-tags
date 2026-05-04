@@ -143,39 +143,45 @@ export default function TrendDetailOverlay({ tag, onClose }: Props) {
             {tag.description}
           </div>
 
-          {/* Heat / proximity meter — same visual, different label */}
-          <div className="mt-4 max-w-[260px] mx-auto">
-            <div className="heat-bar">
-              <span style={{ width: `${tag.heatScore}%` }} />
+          {/* Heat meter — only on trending entries. Calendar entries already
+              communicate "when" via the "आज का दिन · X घंटे पहले" chip in
+              the header, so the bar+number adds no info and reads like debug. */}
+          {!isToday && (
+            <div className="mt-4 max-w-[260px] mx-auto">
+              <div className="heat-bar">
+                <span style={{ width: `${tag.heatScore}%` }} />
+              </div>
             </div>
-            <div className="text-[10px] text-sc-text3 mt-2 uppercase tracking-wider font-semibold">
-              {isToday ? `Date proximity · ${tag.heatScore}/100` : `Heat · ${tag.heatScore}/100`}
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Tribe — "लोग क्या कह रहे हैं" — social proof */}
-        <DiscoveryPanel
-          icon="🌍"
-          label="लोग क्या कह रहे हैं"
-          accent={accent}
-          subtitle={discovery.tribe.headline}
-        >
-          <div className="flex flex-col gap-[6px]">
-            {discovery.tribe.reactions.map((r, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-2 bg-sc-surface2 rounded-[10px] px-3 py-2"
-              >
-                <span className="text-[16px] leading-none mt-[1px]">{r.icon}</span>
-                <span className="text-[12px] leading-[1.5] text-sc-text">{r.text}</span>
-              </div>
-            ))}
-          </div>
-          <div className="text-[10px] text-sc-text3 mt-2">
-            {discovery.tribe.footnote}
-          </div>
-        </DiscoveryPanel>
+        {/* Tribe — "लोग क्या कह रहे हैं" — social proof.
+            Hidden for calendar-only entries: there is no real "tribe of users
+            heatedly discussing Buddha Purnima on Reddit." Tribe maps to news
+            trends with active social signal, not predictable festival days. */}
+        {!isToday && (
+          <DiscoveryPanel
+            icon="🌍"
+            label="लोग क्या कह रहे हैं"
+            accent={accent}
+            subtitle={discovery.tribe.headline}
+          >
+            <div className="flex flex-col gap-[6px]">
+              {discovery.tribe.reactions.map((r, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 bg-sc-surface2 rounded-[10px] px-3 py-2"
+                >
+                  <span className="text-[16px] leading-none mt-[1px]">{r.icon}</span>
+                  <span className="text-[12px] leading-[1.5] text-sc-text">{r.text}</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-[10px] text-sc-text3 mt-2">
+              {discovery.tribe.footnote}
+            </div>
+          </DiscoveryPanel>
+        )}
 
         {/* Hunt — "अंदर क्या मिलेगा" — what's inside if you tap */}
         <DiscoveryPanel
@@ -208,24 +214,28 @@ export default function TrendDetailOverlay({ tag, onClose }: Props) {
           </div>
         </DiscoveryPanel>
 
-        {/* Self — "आपके लिए क्यों" — personal angle */}
-        <DiscoveryPanel
-          icon="💫"
-          label="आपके लिए क्यों"
-          accent={accent}
-        >
-          <div className="text-[13px] leading-[1.6] text-sc-text">
-            {discovery.self}
-          </div>
-        </DiscoveryPanel>
-
-        {/* AI Summary — secondary, but still here */}
-        <div className="px-5 py-4 border-b border-[var(--border)]">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] text-sc-text2 uppercase tracking-wider font-bold">
-              🤖 AI में 30 second
+        {/* Self — "आपके लिए क्यों" — personal angle.
+            Hidden for calendar entries: festivals don't need a "why this is for
+            you" identity hook — the festival itself IS the identity prompt. */}
+        {!isToday && (
+          <DiscoveryPanel
+            icon="💫"
+            label="आपके लिए क्यों"
+            accent={accent}
+          >
+            <div className="text-[13px] leading-[1.6] text-sc-text">
+              {discovery.self}
             </div>
-            <div className="text-[9px] text-sc-text3 font-mono">gpt-4o-mini</div>
+          </DiscoveryPanel>
+        )}
+
+        {/* AI Summary — secondary, but still here.
+            We deliberately do NOT show the model name in the UI — consumer
+            users don't care which model wrote the line, and exposing it is
+            a debug-leak signal that erodes trust in the surface. */}
+        <div className="px-5 py-4 border-b border-[var(--border)]">
+          <div className="text-[10px] text-sc-text2 uppercase tracking-wider font-bold mb-2">
+            🤖 AI में 30 second
           </div>
           {summaryLoading && (
             <div className="space-y-2">
@@ -244,15 +254,21 @@ export default function TrendDetailOverlay({ tag, onClose }: Props) {
           )}
         </div>
 
-        {/* Sources — collapsed signal-trace footer */}
+        {/* Sources — collapsed provenance footer.
+            Header softened from English "Signal trace" → Hindi "ये कहाँ से आया"
+            (this is a consumer surface, not an admin dashboard). For calendar
+            entries we drop the right-side "calendar only" technical label —
+            the Hindi sentence below already conveys it in user-readable form. */}
         <div className="px-5 py-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] text-sc-text2 uppercase tracking-wider font-bold">
-              📡 Signal trace
+              📡 ये कहाँ से आया
             </div>
-            <div className="text-[10px] text-sc-text3">
-              {tag.sourceCount === 0 ? "calendar only" : `${tag.sourceCount} sources`}
-            </div>
+            {tag.sourceCount > 0 && (
+              <div className="text-[10px] text-sc-text3">
+                {tag.sourceCount} sources
+              </div>
+            )}
           </div>
           {tag.sourceCount === 0 ? (
             <div className="text-[11px] text-sc-text3 leading-[1.5]">

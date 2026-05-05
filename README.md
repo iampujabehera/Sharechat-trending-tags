@@ -2,7 +2,9 @@
 
 A Next.js 14 prototype that auto-discovers what's trending in India today and renders it in a ShareChat-styled mobile UI. Built as a ShareChat APM assignment by Puja Behera.
 
-**Live demo:** _add Vercel URL after deploy_
+**Live demo:** [sharechat-trending-tags.vercel.app](https://sharechat-trending-tags.vercel.app/)
+**Walkthrough (Loom):** [2-minute video demo](https://www.loom.com/share/98e647caca2d46ff9d8d73df954f0125)
+**Source:** [github.com/iampujabehera/Sharechat-trending-tags](https://github.com/iampujabehera/Sharechat-trending-tags)
 **Stack:** Next.js 14 · TypeScript · Tailwind · OpenAI API (`gpt-4o-mini` + DALL-E 3) · Vercel
 
 ---

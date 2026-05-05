@@ -7,9 +7,13 @@ A Next.js 14 prototype that auto-discovers what's trending in India today and re
 
 ---
 
-## How the system decides what's trending
+## Write-up (assignment deliverable)
 
-### Why this signal mix — the proxy disclosure
+This section contains the five required write-up components in order: how the system decides what's trending, the workflow diagram, stage-by-stage tech choices, UX rationale, and what's next. Deeper product notes (Hook-overlay design, honest gaps, prompt design) live in the **Appendix** below. Setup, deployment, and API contract are at the bottom under **Repo & setup**.
+
+### 1. How the system decides what's trending — sources, logic, weights, filters
+
+#### Why this signal mix — the proxy disclosure
 
 The assignment asks for "what people are searching for, what's spiking in posts and views, what's breaking in the news, what's going viral on other platforms." The honest constraint: we cannot access ShareChat's internal data, X/Twitter's API is paid, and Instagram's is closed. So this prototype approximates each of those signal types with the best free public proxy available:
 
@@ -23,7 +27,7 @@ The assignment asks for "what people are searching for, what's spiking in posts 
 
 This is explicitly a proxy-based stack. It is NOT a substitute for ShareChat-internal post velocity, view counts, or in-app search — those would replace several of these proxies in production. The goal here is to demonstrate the pipeline shape end-to-end, with honest sources we can actually access.
 
-### Signal sources, in detail
+#### Signal sources, in detail
 
 | Source                    | Signal type            | Why it's in the mix                                                                                   | Failure mode                                              |
 | ------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -36,7 +40,44 @@ This is explicitly a proxy-based stack. It is NOT a substitute for ShareChat-int
 | **5x RSS feeds**          | Breaking news          | NDTV, TOI, The Hindu, Gadgets360, NDTV Cricket. No auth.                                              | One feed dying ≠ all feeds dying — `Promise.allSettled`.  |
 | **Cultural calendar**     | Cultural context       | Hardcoded JSON of festivals + cricket fixtures with `boostDaysBefore`. Solves the cold-start problem — Buddha Purnima matters even if NDTV hasn't written about it yet. | Local file; cannot fail unless malformed.                 |
 
-### Pipeline Architecture
+#### Scoring formula
+
+```
+heatScore = (sourceScore   × 0.30)   ← weighted-sum of sources, NOT raw count
+          + (relevanceScore × 0.25)   ← GPT's India-relevance verdict
+          + (velocityScore × 0.35)    ← signal-type diversity (search + viral + social + news)
+          + (calendarScore × 0.10)    ← festival/cricket proximity boost
+```
+
+**Sources are NOT counted equally.** Each source has a weight reflecting what it uniquely captures (defined in [`lib/pipeline/score.ts`](lib/pipeline/score.ts) `SOURCE_WEIGHTS`):
+
+| Source | Weight | Why this weight |
+|---|---|---|
+| `google_trends` | 1.3 | Direct user search intent — strongest single signal of what people want right now |
+| `youtube` | 1.1 | Viral video proxy — second-strongest because it shows actual cultural traction |
+| `reddit_*` (any) | 0.9 | Social discussion — useful but English-skewed and not the target audience |
+| `newsapi` / `rss` | 0.8 | Breaking news — always present, lower marginal info per source |
+
+`sourceScore = min(100, (Σ weights) / 3.0 × 100)`. So a topic showing up in `google_trends` + `youtube` + `reddit_cricket` (1.3 + 1.1 + 0.9 = 3.3) saturates the bar; a topic only in `newsapi` + `rss` (0.8 + 0.8 = 1.6) gets ~53.
+
+**Velocity scoring** rewards signal-type diversity, not just source count:
+
+- `+20` if the topic appears in `google_trends` (active demand)
+- `+15` if it appears in `youtube` (crossing into viral)
+- `+10` if it appears in any reddit (people discussing it)
+- `+5` if news has caught up
+- `+5` more if 4+ distinct sources confirm it
+
+So a topic in only NewsAPI + RSS = 50+5 = 55 (slow burn). A topic in Google Trends + YouTube + Reddit + RSS = 50+20+15+10+5+5 = 100 (genuinely trending).
+
+In plain English:
+
+- **Source count (30%)** — Weighted-sum so search-intent and viral signals contribute more than news. This is the anti-manipulation + signal-quality lever.
+- **India relevance (25%)** — The model's per-topic 0–1 score. The prompt tells it to score Hindi-belt + tier-2/3 cities, not metro English India. "RBI Rate Cut" passes; "Federal Reserve" fails.
+- **Velocity (35%)** — Proxy for spread speed using signal-type diversity. Real velocity (time-bucketed counts) is Day-2 work and called out in the Honest Gaps section.
+- **Cultural calendar boost (10%)** — A mild tiebreaker inside the trending leaderboard. If a topic Gemini extracted (e.g. "बंगाल चुनाव") happens to coincide with a calendar event, it gets a small lift. Calendar-only events (festivals nobody is reporting on yet) do **not** appear in the trending leaderboard — they live in a separate "आज का दिन" strip. This is an explicit editorial choice: see the [Two-strips editorial decision](#two-strips-editorial-decision) section in the Appendix.
+
+### 2. Workflow diagram
 
 ```
  ┌────────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐ ┌──────────────────┐
@@ -97,44 +138,7 @@ This is explicitly a proxy-based stack. It is NOT a substitute for ShareChat-int
                        └───────────────┘
 ```
 
-### Scoring Formula
-
-```
-heatScore = (sourceScore   × 0.30)   ← weighted-sum of sources, NOT raw count
-          + (relevanceScore × 0.25)   ← GPT's India-relevance verdict
-          + (velocityScore × 0.35)    ← signal-type diversity (search + viral + social + news)
-          + (calendarScore × 0.10)    ← festival/cricket proximity boost
-```
-
-**Sources are NOT counted equally.** Each source has a weight reflecting what it uniquely captures (defined in [`lib/pipeline/score.ts`](lib/pipeline/score.ts) `SOURCE_WEIGHTS`):
-
-| Source | Weight | Why this weight |
-|---|---|---|
-| `google_trends` | 1.3 | Direct user search intent — strongest single signal of what people want right now |
-| `youtube` | 1.1 | Viral video proxy — second-strongest because it shows actual cultural traction |
-| `reddit_*` (any) | 0.9 | Social discussion — useful but English-skewed and not the target audience |
-| `newsapi` / `rss` | 0.8 | Breaking news — always present, lower marginal info per source |
-
-`sourceScore = min(100, (Σ weights) / 3.0 × 100)`. So a topic showing up in `google_trends` + `youtube` + `reddit_cricket` (1.3 + 1.1 + 0.9 = 3.3) saturates the bar; a topic only in `newsapi` + `rss` (0.8 + 0.8 = 1.6) gets ~53.
-
-**Velocity scoring** rewards signal-type diversity, not just source count:
-
-- `+20` if the topic appears in `google_trends` (active demand)
-- `+15` if it appears in `youtube` (crossing into viral)
-- `+10` if it appears in any reddit (people discussing it)
-- `+5` if news has caught up
-- `+5` more if 4+ distinct sources confirm it
-
-So a topic in only NewsAPI + RSS = 50+5 = 55 (slow burn). A topic in Google Trends + YouTube + Reddit + RSS = 50+20+15+10+5+5 = 100 (genuinely trending).
-
-In plain English:
-
-- **Source count (30%)** — Weighted-sum so search-intent and viral signals contribute more than news. This is the anti-manipulation + signal-quality lever.
-- **India relevance (25%)** — The model's per-topic 0–1 score. The prompt tells it to score Hindi-belt + tier-2/3 cities, not metro English India. "RBI Rate Cut" passes; "Federal Reserve" fails.
-- **Velocity (35%)** — Proxy for spread speed using signal-type diversity. Real velocity (time-bucketed counts) is Day-2 work and called out in the Honest Gaps section.
-- **Cultural calendar boost (10%)** — A mild tiebreaker inside the trending leaderboard. If a topic Gemini extracted (e.g. "बंगाल चुनाव") happens to coincide with a calendar event, it gets a small lift. Calendar-only events (festivals nobody is reporting on yet) do **not** appear in the trending leaderboard — they live in a separate "आज का दिन" strip. This is an explicit editorial choice: see the [Two-strips editorial decision](#two-strips-editorial-decision) section below.
-
-### Stage-by-stage breakdown
+### 3. Stage-by-stage — which model/API/technique and why
 
 | Stage    | Tech                          | Why this choice                                                                  |
 | -------- | ----------------------------- | -------------------------------------------------------------------------------- |
@@ -148,9 +152,49 @@ The runtime resilience layer is the **OpenAI SDK's built-in retry**: 429/5xx err
 
 > **Migration note:** the project was originally built with Google Gemini Flash. We migrated through Anthropic Claude (paid, very high quality, but $20 minimum top-up) and finally to OpenAI's `gpt-4o-mini` (paid, $5 minimum, ~5× cheaper than Claude Opus). Gemini's free tier is hard to size around for a development workflow that hits the API every 25 minutes; the paid alternatives remove quota concerns. Hindi quality on `gpt-4o-mini` is noticeably better than Gemini Flash on this prompt and within striking distance of Claude Opus.
 
+### 4. UX rationale — what was optimised for, what was rejected
+
+**The single most important UX decision: align to ShareChat's actual TRENDING TAGS pattern, not invent a new one.** An earlier iteration of this prototype used Twitter-style cards — rounded corners, left accent bar, source pills, full heat bar with explicit score. After observing the real ShareChat trending tab in production, that design felt like an outsider's reinterpretation, not a native surface. ShareChat's trending tags are **flat rows with subtle dividers, an emoji prefix, and a Hindi headline — that's it.** So the prototype's strip now matches that density and structure exactly. The differentiation moved from *visual richness on the strip* to *editorial richness in the description*, and from *dashboard-style metadata on the card* to *a richer detail overlay on tap*. This is the call that earned the most simplification + the most Loom-defensible answer.
+
+**Flat rows, not cards.** Each tag is a single row: emoji prefix + Hindi headline (one line, bold) + hook description (one line, smaller, muted). Subtle bottom divider between rows. Matches ShareChat's exact TRENDING TAGS pattern so the strip feels native to the app, not like a foreign widget bolted on.
+
+**Heat shown only when it's meaningful.** A subtle right-aligned indicator: `🔥 87` for trends ≥80 (orange, bold), a muted gray number for 60–79, and nothing at all below 60. Replaces the earlier full-width heat bar with explicit score on every card. Reasoning: a 50/100 trend doesn't need a badge shouting at the user, and the eye learns "the orange number means this is genuinely hot right now." The detail overlay still shows the full bar (no number) for users who tap in for context.
+
+**Hindi-first content, English hashtags (in the data layer only).** The displayName and description are Devanagari. The `tag` field is kept in ASCII (e.g. `#IPL2026`) for the data model and detail overlay, but the strip itself does NOT show the hashtag chip on each row — ShareChat's actual UI doesn't either. Users recognize `#TeamIndia` from cross-platform contexts, but on a Hindi-first surface the headline IS the entry point.
+
+**Two strips, not one mixed list.** Trending leaderboard (`tags[]`, signal-driven) sits below an "आज का दिन" / TODAY strip (`today[]`, calendar-driven horizontal carousel). Calendar events are predictable, news/social is unpredictable — different mental models, so different visual lanes. Calendar contributes only 10% inside the trending heat formula as a mild tiebreaker; it never dominates.
+
+**Section labels in uppercase English (TRENDING TAGS / TODAY).** Matches ShareChat's actual structural-label convention. Even on Hindi-first surfaces, ShareChat keeps wayfinding labels in English (consistent with Swiggy, Zomato, BookMyShow). The CONTENT being Hindi is what matters; English structural labels read as cleaner wayfinding than Devanagari ones, which can feel formal/literary.
+
+**Slide-up detail overlay, not a new route.** Detail is a transient action, not a destination. A bottom-sheet keeps the user's mental position in the feed and lets them dismiss with a swipe. Browser back is intentionally no-op here so users don't accidentally lose their place.
+
+**Detail overlay = variable-reward triad (Hook framework), conditional on entry type.** Trending entries get all three panels (tribe / hunt / self) because real social discussion exists for them. Calendar entries (Buddha Purnima, Maharashtra Day) get a lighter template — only the Hunt panel + AI summary + provenance — because there is no real "tribe of users heatedly debating Buddha Purnima on Reddit," and the festival itself IS the identity prompt (no need for a separate Self panel).
+
+**Skeleton with Hindi loading copy.** "आज के trends ढूंढ रहे हैं... 🔍" is 3 words but it does two jobs: (1) confirms the action is in flight, (2) signals that the product speaks the user's language even at the loading state, not just in the data.
+
+**Considered and rejected:**
+- _Twitter-style cards with full heat bar, source pills, and rank chips on every row._ The first iteration. Felt dashboard-y on a consumer surface and competed with the headline for attention. Replaced with ShareChat's flat-row pattern.
+- _Showing the model name (`gpt-4o-mini`) under the AI summary._ Initial prototype leaked it. Consumer users don't care which model wrote the line — exposing it is a debug-leak signal that erodes trust.
+- _Engineer-source labels on the strip (`RSS`, `r/india`, `r/cricket`, `r/bolly`)._ Reddit subreddit naming and the RSS acronym are jargon to a tier-2/3 user. The detail overlay groups sources into consumer signal types (खबर / वीडियो / Search / Social) with a readable Hindi sentence; the strip itself shows none of this.
+- _A horizontally scrolling rail of trends in place of the vertical list._ Phone scroll is vertical; users would miss anything past the first 3.
+- _Auto-refresh every 30s._ Would jank the scroll. Manual pull-to-refresh; cache TTL is 25 min.
+- _Showing the raw indiaRelevanceScore (0.0–1.0)._ Decimal scoring reads like data-team output, not a consumer product. Heat score 0–100 reads as "how hot is it."
+
+### 5. What I'd build next (4 more weeks)
+
+1. **Region-aware trending.** The cultural calendar already has `relevantRegions`. Wire it through to the heat formula so a Bihar/UP user sees Chhath Puja boosted and a Kerala user sees Onam. Server-side region detection from IP + an opt-in override toggle.
+2. **Multi-language displayName, not just Hindi.** Bengali, Tamil, Telugu, Marathi. Same pipeline; add a `language` query param and have GPT translate the displayName + description in one extra step. ShareChat is vernacular-first — Hindi alone undersells this.
+3. **Trend velocity from time-bucketed counts.** Currently we proxy velocity via source diversity. With a Redis or even just a rolling-file store of "topic X count over last 30/60/120 min," we'd get real velocity. Topics that doubled their count in the last 30 min would clearly outrank evergreen mentions.
+4. **Anti-manipulation v2: per-source weight.** Right now every source is one vote. A coordinated NewsAPI stuffing attack (lots of related headlines from one publisher) could spike heatScore. Tracking `(source, publisher)` pairs and capping votes-per-publisher would harden against this.
+5. **"Why is this trending?" inline in the card.** The AI summary lives in the detail overlay today. A 1-line, 8-token caption ("क्योंकि भारत-ऑस्ट्रेलिया मैच आज है") on each card itself, generated in the same extraction call (one extra field), would be the single highest-impact UX upgrade — users wouldn't need to tap to understand.
+
 ---
 
-## Hook-style description prompt — the actual product spec
+## Appendix: deeper product notes
+
+These sections are *not* part of the required 2-page write-up — they document deeper product thinking for reviewers who want it.
+
+### Hook-style description prompt — the actual product spec
 
 The single highest-leverage change in this codebase is the extraction prompt in [`lib/pipeline/extract.ts`](lib/pipeline/extract.ts). The model returns a JSON array; the only field that matters for whether a tier-2/3 user taps is `description`.
 
@@ -162,9 +206,7 @@ So the prompt is opinionated. It bans templated phrasing (`जानिए / द
 
 This is also why the calendar template in [`app/api/trending/route.ts`](app/api/trending/route.ts) was rewritten — the old "पूरे देश में लोग मना रहे हैं" template was both factually wrong for regional events (Maharashtra Day, Onam) and hook-dead.
 
----
-
-## Two-strips editorial decision
+### Two-strips editorial decision
 
 The original design ranked calendar events and news events in a single sorted list. Calendar boosts pushed festivals to scores of 90 even with zero news corroboration, while a 2-source news event would rank lower. This was wrong twice:
 
@@ -178,9 +220,7 @@ So the API now returns two arrays:
 
 The UI renders them as visually distinct strips — the today strip is a horizontal chip carousel with no rank numbers and no heat scores; the trending strip is the vertical ranked list with full heat metrics. Different lane, different read.
 
----
-
-## Hook model overlay — why the detail page is shaped this way
+### Hook model overlay — why the detail page is shaped this way
 
 The trend detail overlay deliberately follows Nir Eyal's variable-reward triad — tribe / hunt / self — rather than a Wikipedia "summary + sources" layout:
 
@@ -192,65 +232,36 @@ The AI summary and signal-source list are intentionally demoted below these thre
 
 **Investment loop status: minimal.** A "+ Follow" toggle exists on the detail sheet so the prototype demonstrates the fourth Hook stage, but the toggle currently just flips local state. A real investment loop (followed-tags strip on home, push when a followed tag re-ignites, streaks on consecutive daily checks) is intentionally out of scope and called out below.
 
----
-
-## Honest gaps — what this build does NOT do
+### Honest gaps — what this build does NOT do
 
 These are the choices made under the 10–14 hour assignment budget. Each is a deliberate exclusion, not an oversight.
 
-### 1. No geo-within-India layer
+#### 1. No geo-within-India layer
 The cultural calendar JSON has a `relevantRegions: ["Bihar", "UP"] | ["all"]` field, but the runtime does not filter or weight by it. Result: a tier-2 Bihari user sees Maharashtra Day and Bengal Election content with the same prominence as a Maharashtrian user. The fix is two-fold — (a) accept a `region` query param or derive from IP, (b) demote `relevantRegions` mismatches in heat scoring. Day-2.
 
-### 2. No freshness decay function
+#### 2. No freshness decay function
 The system fetches every 25 minutes and treats all signals from one fetch as equally fresh. A 6-hour-old RSS item ranks the same as a 6-minute-old one. A real implementation would attach per-item ingest timestamps and weight by `e^(-Δt/τ)` with `τ ≈ 4–6 hours`. Without this, slow-burn topics outrank the actually-spiking ones in some windows. Day-2.
 
-### 3. No real investment loop
+#### 3. No real investment loop
 The follow toggle is local-state-only. There is no follow graph, no "your trends" rail on home, no notification when a followed trend re-ignites, no streak counter. The Hook framework's investment stage is the loop that compounds retention; without it, trending tags are a vending machine, not a habit. This is the single biggest "what I'd build next" item.
 
-### 4. No anti-manipulation per-publisher cap
+#### 4. No anti-manipulation per-publisher cap
 Every source is one vote. A coordinated stuffing attack — multiple related headlines from one publisher across NewsAPI — would inflate a topic's source diversity score without genuine spread. Tracking `(source, publisher)` pairs and capping votes-per-publisher would harden against this. Not a problem at prototype scale; would be a problem at production.
 
-### 5. The mock discovery copy in detail overlay
+#### 5. The mock discovery copy in detail overlay
 The tribe/hunt/self panels render hard-coded category-keyed copy (see `buildDiscoveryCopy` in [`components/TrendDetailOverlay.tsx`](components/TrendDetailOverlay.tsx)), not real reactions or real post teasers. The prototype is honest about this — it demonstrates the UX shape and the editorial intent. Production wiring would call:
 - `/api/tag/{id}/reactions` → top comments + reaction counts
 - `/api/tag/{id}/posts` → 3 best posts by engagement
 - A personalisation service for the self panel
 
-### 6. The heat-score tradeoff
+#### 6. The heat-score tradeoff
 Velocity is proxied by source diversity, not actual time-bucketed counts (see [`lib/pipeline/score.ts`](lib/pipeline/score.ts) `calculateVelocity`). This means a topic that quietly persists across all 3 sources gets the same velocity score as one that doubled in the last 30 minutes. The honest version requires a rolling window store (Redis or even a flat file) tracking topic counts at 30/60/120-min intervals. The proxy is good enough for a 10-hour build; real production needs the real version.
 
 ---
 
-## UX Rationale
+## Repo & setup
 
-**Cards, not a list.** Each card stands alone — emoji avatar, Hindi name, English hashtag, single-line description, source pills, heat bar + score. The format is scannable and matches the rest of the ShareChat feed shape, so the trending screen feels native, not like a sidebar.
-
-**Heat bar AND a number.** A bar alone is harder to compare across rows; a number alone has no relative scale on a phone. Showing both lets users feel the gap between #2 (87) and #5 (62) without doing math. Color-grades from orange→gold; matches the brand palette.
-
-**Hindi-first content, English hashtags.** The displayName, description, and category labels are all in Devanagari. The `tag` stays in ASCII because that's how hashtags work on Twitter/Instagram — users *recognize* `#TeamIndia` even if their feed is otherwise Hindi-only.
-
-**Slide-up detail overlay, not a new route.** Detail is a transient action, not a destination. A bottom-sheet keeps the user's mental position in the feed and lets them dismiss with a swipe. Browser back is intentionally no-op here so users don't accidentally lose their place.
-
-**Skeleton with Hindi loading copy.** "आज के trends ढूंढ रहे हैं... 🔍" is 3 words but it does two jobs: (1) confirms the action is in flight, (2) signals that the product speaks the user's language even at the loading state, not just in the data.
-
-**Considered and rejected:**
-- _A horizontally scrolling rail of trends._ Optimizes the wrong thing — phone scroll is vertical; users would miss everything past the first 3.
-- _Auto-refresh every 30s._ Would jank the scroll. Manual refresh button is fine; cache TTL is 25 min.
-- _Showing the raw indiaRelevanceScore (0.0–1.0)._ Decimal scoring reads like data-team output, not a consumer product. Heat score 0–100 reads as "how hot is it."
-
----
-
-## What I'd build next (4 more weeks)
-
-1. **Region-aware trending.** The cultural calendar already has `relevantRegions`. Wire it through to the heat formula so a Bihar/UP user sees Chhath Puja boosted and a Kerala user sees Onam. Server-side region detection from IP + an opt-in override toggle.
-2. **Multi-language displayName, not just Hindi.** Bengali, Tamil, Telugu, Marathi. Same pipeline; add a `language` query param and have GPT translate the displayName + description in one extra step. ShareChat is vernacular-first — Hindi alone undersells this.
-3. **Trend velocity from time-bucketed counts.** Currently we proxy velocity via source diversity. With a Redis or even just a rolling-file store of "topic X count over last 30/60/120 min," we'd get real velocity. Topics that doubled their count in the last 30 min would clearly outrank evergreen mentions.
-4. **Anti-manipulation v2: per-source weight.** Right now every source is one vote. A coordinated NewsAPI stuffing attack (lots of related headlines from one publisher) could spike heatScore. Tracking `(source, publisher)` pairs and capping votes-per-publisher would harden against this.
-5. **"Why is this trending?" inline in the card.** The AI summary lives in the detail overlay today. A 1-line, 8-token caption ("क्योंकि भारत-ऑस्ट्रेलिया मैच आज है") on each card itself, generated in the same extraction call (one extra field), would be the single highest-impact UX upgrade — users wouldn't need to tap to understand.
-
----
-
-## Tools used
+### Tools used
 
 - **Claude Code** — to scaffold the project, write source modules, prompt design, UI components.
 - **OpenAI API** (`gpt-4o-mini`) — extraction + summaries via the official `openai` Node SDK.
@@ -258,9 +269,7 @@ Velocity is proxied by source diversity, not actual time-bucketed counts (see [`
 - **Tailwind CSS** — design tokens kept colocated with components.
 - **rss-parser**, **fast `fetch`** — ingest layer, no extra middleware needed.
 
----
-
-## Setup
+### Setup
 
 ```bash
 # 1. install

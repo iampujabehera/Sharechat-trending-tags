@@ -27,14 +27,26 @@ const SOURCE_LABELS: Record<string, { name: string; icon: string }> = {
 interface Props {
   tag: TrendingTag;
   onClose: () => void;
+  // Only the #1 trending tag gets the live "Show post" image-generation
+  // CTA — wired upstream by TrendingApp from data.tags[0].id. Every other
+  // tag keeps the existing close-overlay behaviour on the bottom button.
+  isTop?: boolean;
 }
 
-export default function TrendDetailOverlay({ tag, onClose }: Props) {
+interface GeneratedPost {
+  imageDataUrl: string;
+  caption: string;
+}
+
+export default function TrendDetailOverlay({ tag, onClose, isTop = false }: Props) {
   const accent = CATEGORY_COLORS[tag.category];
   const [summary, setSummary] = useState<string | null>(tag.aiSummary ?? null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [followed, setFollowed] = useState(false);
+  const [post, setPost] = useState<GeneratedPost | null>(null);
+  const [postLoading, setPostLoading] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -91,6 +103,35 @@ export default function TrendDetailOverlay({ tag, onClose }: Props) {
   // demonstrates the variable-reward pattern; production would back these
   // panels with real post counts, sample reactions, and content thumbnails.
   const discovery = buildDiscoveryCopy(tag);
+
+  // On-demand AI post generation — fires only when the user explicitly
+  // taps the "Show post" CTA on the #1 trending tag. We deliberately
+  // do NOT auto-fetch this on overlay-open: each call costs ~$0.04 for
+  // the DALL-E image, so we wait for explicit intent.
+  async function handleGeneratePost() {
+    if (postLoading || post) return;
+    setPostLoading(true);
+    setPostError(null);
+    try {
+      const params = new URLSearchParams({
+        tag: tag.tag,
+        name: tag.displayName,
+        desc: tag.description,
+        category: tag.category,
+      });
+      const res = await fetch(`/api/generate-post?${params.toString()}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setPost({ imageDataUrl: data.imageDataUrl, caption: data.caption });
+    } catch (e) {
+      setPostError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPostLoading(false);
+    }
+  }
 
   return (
     <>
@@ -292,7 +333,60 @@ export default function TrendDetailOverlay({ tag, onClose }: Props) {
           )}
         </div>
 
-        {/* Sticky-ish CTA cluster: Follow + open feed */}
+        {/* AI-generated post — only rendered after the user taps "Show post"
+            on the #1 trending tag. Image is base64 (data: URL) so it survives
+            the OpenAI URL expiry; the route caches it for an hour. */}
+        {isTop && (post || postLoading || postError) && (
+          <div className="px-5 py-4 border-b border-[var(--border)]">
+            <div className="text-[10px] text-sc-text2 uppercase tracking-wider font-bold mb-2">
+              📸 AI से बनाया गया post
+            </div>
+            {postLoading && (
+              <div className="space-y-2">
+                <div
+                  className="skel rounded-[12px] w-full"
+                  style={{ aspectRatio: "1 / 1" }}
+                />
+                <div className="skel rounded h-3 w-full" />
+                <div className="skel rounded h-3 w-3/4" />
+                <div className="text-[11px] text-sc-text3 pt-1">
+                  Image बन रही है — 10–20 sec लग सकते हैं
+                </div>
+              </div>
+            )}
+            {postError && (
+              <div className="text-[12px] text-sc-text3 leading-[1.5]">
+                Post नहीं बन पाई — {postError.slice(0, 80)}.{" "}
+                <button
+                  onClick={() => {
+                    setPost(null);
+                    setPostError(null);
+                    handleGeneratePost();
+                  }}
+                  className="text-sc-blue font-bold underline"
+                >
+                  दोबारा try करें
+                </button>
+              </div>
+            )}
+            {post && (
+              <div className="rounded-[12px] overflow-hidden bg-sc-surface2 border border-[var(--border)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.imageDataUrl}
+                  alt={`AI-generated post for ${tag.displayName}`}
+                  className="w-full block"
+                  style={{ aspectRatio: "1 / 1", objectFit: "cover" }}
+                />
+                <div className="p-3 text-[13px] leading-[1.6] text-sc-text whitespace-pre-wrap">
+                  {post.caption}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sticky-ish CTA cluster: Follow + (Show post | Posts देखें) */}
         <div className="px-5 py-4 pb-7 flex gap-2">
           <button
             onClick={() => setFollowed((v) => !v)}
@@ -309,12 +403,29 @@ export default function TrendDetailOverlay({ tag, onClose }: Props) {
           >
             {followed ? "✓ Followed" : "+ Follow"}
           </button>
-          <button
-            onClick={onClose}
-            className="flex-1 bg-sc-blue text-white text-[14px] font-bold py-3 rounded-[12px] active:scale-[0.99] transition"
-          >
-            Posts देखें →
-          </button>
+          {isTop ? (
+            // The #1 trending tag: clicking the blue CTA generates an AI
+            // image + Hindi caption inline. After the post renders, the
+            // button switches to a plain close action.
+            <button
+              onClick={post ? onClose : handleGeneratePost}
+              disabled={postLoading}
+              className="flex-1 bg-sc-blue text-white text-[14px] font-bold py-3 rounded-[12px] active:scale-[0.99] transition disabled:opacity-60"
+            >
+              {postLoading
+                ? "बना रहे हैं..."
+                : post
+                ? "बंद करें"
+                : "📸 Show post →"}
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="flex-1 bg-sc-blue text-white text-[14px] font-bold py-3 rounded-[12px] active:scale-[0.99] transition"
+            >
+              Posts देखें →
+            </button>
+          )}
         </div>
       </div>
     </>

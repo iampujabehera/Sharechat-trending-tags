@@ -98,7 +98,14 @@ export default function TrendingApp({ initialData, initialError }: Props) {
       </PhoneFrame>
 
       {selectedTag && (
-        <TrendDetailOverlay tag={selectedTag} onClose={() => setSelectedTag(null)} />
+        <TrendDetailOverlay
+          tag={selectedTag}
+          onClose={() => setSelectedTag(null)}
+          // Only the #1 trending tag gets the live "Show post" → DALL-E
+          // image-generation flow. Limiting to one tag is a deliberate
+          // cost-control choice; see /api/generate-post for the rationale.
+          isTop={!!data?.tags?.[0] && selectedTag.id === data.tags[0].id}
+        />
       )}
     </>
   );
